@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getProject, submitJob } from '../api';
 
@@ -18,6 +18,7 @@ function getTemplateResponse(gap) {
 export default function GapResponse() {
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const mounted = useRef(true);
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [responses, setResponses] = useState({});
@@ -25,11 +26,22 @@ export default function GapResponse() {
   const [error, setError] = useState(null);
   const [processFlowApproval, setProcessFlowApproval] = useState('');
   const [processFlowComments, setProcessFlowComments] = useState('');
-  const [mermaidRendered, setMermaidRendered] = useState(false);
+  const [diagramSvg, setDiagramSvg] = useState(null);
+  const [diagramError, setDiagramError] = useState(null);
 
   useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mounted.current) return;
+
     getProject(projectId)
       .then(p => {
+        if (!mounted.current) return;
         setProject(p);
         // Initialize responses with template text
         const initialResponses = {};
@@ -40,8 +52,12 @@ export default function GapResponse() {
         }
         setResponses(initialResponses);
       })
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
+      .catch(err => {
+        if (mounted.current) setError(err.message);
+      })
+      .finally(() => {
+        if (mounted.current) setLoading(false);
+      });
   }, [projectId]);
 
   const handleResponseChange = (gapId, value) => {
@@ -109,20 +125,22 @@ export default function GapResponse() {
 
   // Render Mermaid diagram when process flow becomes available
   useEffect(() => {
-    if (!project?.baProcessFlow) return;
-    const container = document.getElementById('process-flow-diagram');
-    if (!container || !window.mermaid) return;
+    if (!project?.baProcessFlow || !mounted.current) return;
+    if (!window.mermaid) return;
+
+    setDiagramSvg(null);
+    setDiagramError(null);
 
     const diagramId = `mermaid-${Date.now()}`;
     window.mermaid.render(diagramId, project.baProcessFlow)
       .then(({ svg }) => {
-        container.innerHTML = svg;
-        setMermaidRendered(true);
+        if (!mounted.current) return;
+        setDiagramSvg(svg);
       })
       .catch(err => {
+        if (!mounted.current) return;
         console.error('Mermaid render error:', err);
-        container.innerHTML = `<pre style="font-size:12px;color:#666;white-space:pre-wrap">${project.baProcessFlow}</pre>`;
-        setMermaidRendered(true);
+        setDiagramError(project.baProcessFlow);
       });
   }, [project?.baProcessFlow]);
 
@@ -213,8 +231,10 @@ export default function GapResponse() {
                 <p style={{ fontSize: '12px', fontWeight: '600', marginBottom: '12px', color: 'var(--on-surface-variant)', textTransform: 'uppercase' }}>
                   Process Flow Diagram
                 </p>
-                <div id="process-flow-diagram" style={{ overflowX: 'auto', minHeight: '300px' }}>
-                  {!mermaidRendered && <p style={{ color: 'var(--on-surface-variant)' }}>Rendering diagram...</p>}
+                <div style={{ overflowX: 'auto', minHeight: '300px' }}>
+                  {!diagramSvg && !diagramError && <p style={{ color: 'var(--on-surface-variant)' }}>Rendering diagram...</p>}
+                  {diagramSvg && <div dangerouslySetInnerHTML={{ __html: diagramSvg }} />}
+                  {diagramError && <pre style={{ fontSize: '12px', color: '#666', whiteSpace: 'pre-wrap' }}>{diagramError}</pre>}
                 </div>
               </div>
 
