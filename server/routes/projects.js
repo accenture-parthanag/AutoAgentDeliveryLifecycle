@@ -473,4 +473,41 @@ router.post('/:id/new-pdd-version', async (req, res) => {
   }
 });
 
+// GET /api/projects/:id/pdd-download - Download original PDD file
+router.get('/:id/pdd-download', async (req, res) => {
+  try {
+    const db = getDb();
+    const fs = require('fs');
+    const project = await db.collection('projects').findOne({
+      _id: new ObjectId(req.params.id)
+    });
+
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Get the latest PDD version
+    const latestVersion = project.pddVersions?.[project.pddVersions.length - 1];
+    if (!latestVersion || !latestVersion.pddFilePath) {
+      return res.status(404).json({ error: 'PDD file not found' });
+    }
+
+    // Check if file exists
+    if (!fs.existsSync(latestVersion.pddFilePath)) {
+      return res.status(404).json({ error: 'PDD file not found on server' });
+    }
+
+    // Read and send the file
+    const fileContent = fs.readFileSync(latestVersion.pddFilePath);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${latestVersion.pddFileName}"`);
+    res.send(fileContent);
+
+    console.log(`✓ Downloaded PDD: ${latestVersion.pddFileName}`);
+  } catch (error) {
+    console.error('Error downloading PDD:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
