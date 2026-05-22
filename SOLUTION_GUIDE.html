@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A-ADLC Platform - Solution Guide</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #faf9f6;
+            --surface: #ffffff;
+            --ink: #0a1628;
+            --accent: #b8341a;
+            --positive: #1b5e20;
+            --negative: #b8341a;
+            --gold: #b08d3a;
+            --muted: #6f7275;
+            --line: #e1dfd7;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0e1116;
+            --surface: #181c23;
+            --ink: #e8e6e1;
+            --accent: #e85a3c;
+            --positive: #6dd474;
+            --negative: #e85a3c;
+            --gold: #d4a968;
+            --muted: #9e9ca0;
+            --line: #3c4147;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--ink);
+            font-family: "Geist", sans-serif;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: "Geist", sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--ink);
+            z-index: 1000;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        .container {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 48px 32px;
+        }
+
+        header {
+            border-bottom: 1px solid var(--line);
+            margin-bottom: 48px;
+            padding-bottom: 32px;
+        }
+
+        .brand-mark {
+            font-family: "Fraunces", serif;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--accent);
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-family: "Fraunces", serif;
+            font-size: 44px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
+            line-height: 1.2;
+        }
+
+        h1 em {
+            font-style: italic;
+            color: var(--accent);
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: var(--muted);
+            margin-top: 8px;
+        }
+
+        h2 {
+            font-family: "Fraunces", serif;
+            font-size: 28px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        h3 {
+            font-family: "Fraunces", serif;
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 28px;
+            margin-bottom: 12px;
+            color: var(--ink);
+        }
+
+        .section {
+            margin-bottom: 48px;
+        }
+
+        .section-label {
+            font-family: "Fraunces", serif;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin: 24px 0;
+        }
+
+        .feature-card {
+            border: 1px solid var(--line);
+            background: var(--surface);
+            padding: 24px;
+        }
+
+        .feature-card h3 {
+            margin-top: 0;
+            font-size: 16px;
+        }
+
+        .feature-card p {
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        .callout {
+            border-left: 3px solid var(--accent);
+            background-color: rgba(184, 52, 26, 0.05);
+            padding: 20px;
+            margin: 24px 0;
+        }
+
+        .callout p {
+            margin: 0;
+        }
+
+        code, pre {
+            font-family: "JetBrains Mono", monospace;
+            font-size: 12px;
+            background-color: var(--surface);
+            border: 1px solid var(--line);
+            padding: 2px 6px;
+        }
+
+        pre {
+            padding: 16px;
+            overflow-x: auto;
+            margin: 16px 0;
+            line-height: 1.5;
+        }
+
+        pre code {
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        ul, ol {
+            margin: 16px 0 16px 32px;
+        }
+
+        li {
+            margin: 8px 0;
+            color: var(--ink);
+        }
+
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin: 24px 0;
+        }
+
+        .step {
+            display: flex;
+            gap: 20px;
+            padding: 16px;
+            border: 1px solid var(--line);
+            background: var(--surface);
+        }
+
+        .step-number {
+            font-family: "JetBrains Mono", monospace;
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--accent);
+            flex-shrink: 0;
+            width: 32px;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-content h4 {
+            font-family: "Fraunces", serif;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+        }
+
+        .step-content p {
+            font-size: 13px;
+            color: var(--muted);
+            margin: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 24px 0;
+        }
+
+        table th, table td {
+            border: 1px solid var(--line);
+            padding: 12px;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        table th {
+            background: var(--surface);
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        table tr:hover {
+            background-color: rgba(184, 52, 26, 0.02);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 0;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin: 4px 4px 4px 0;
+        }
+
+        .status-ready {
+            background-color: rgba(27, 94, 32, 0.15);
+            color: var(--positive);
+            border: 1px solid var(--positive);
+        }
+
+        .status-partial {
+            background-color: rgba(176, 141, 58, 0.15);
+            color: var(--gold);
+            border: 1px solid var(--gold);
+        }
+
+        .cmd-block {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            padding: 16px;
+            margin: 16px 0;
+            border-left: 3px solid var(--accent);
+        }
+
+        .cmd-block code {
+            background: transparent;
+            border: none;
+            padding: 0;
+            color: var(--ink);
+        }
+
+        footer {
+            margin-top: 80px;
+            padding-top: 32px;
+            border-top: 1px solid var(--line);
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .agent-table {
+            margin: 24px 0;
+        }
+
+        .agent-table tr:nth-child(even) {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        [data-theme="dark"] .agent-table tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        @media (max-width: 880px) {
+            .container {
+                padding: 32px 24px;
+            }
+
+            h1 {
+                font-size: 32px;
+            }
+
+            h2 {
+                font-size: 22px;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                margin-bottom: 32px;
+            }
+
+            .section {
+                margin-bottom: 32px;
+            }
+
+            .steps {
+                gap: 12px;
+            }
+
+            .step {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            table th, table td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+
+    <div class="container">
+        <!-- HEADER -->
+        <header>
+            <div class="brand-mark">Getting Started</div>
+            <h1>A-ADLC Platform <em>Solution Guide</em></h1>
+            <p class="subtitle">Complete instructions for running and using the Agentic Automation Development Lifecycle Platform.</p>
+        </header>
+
+        <!-- SECTION 1: INSTALLATION & SETUP -->
+        <section class="section">
+            <div class="section-label">01 / Installation & Setup</div>
+            <h2>Getting Started</h2>
+
+            <h3>Prerequisites</h3>
+            <ul>
+                <li><strong>Node.js</strong> v14 or higher (recommend v16+)</li>
+                <li><strong>npm</strong> v6 or higher (comes with Node.js)</li>
+                <li>A code editor (VS Code recommended)</li>
+                <li>Git for version control</li>
+            </ul>
+
+            <h3>Installation Steps</h3>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Clone or Download the Repository</h4>
+                        <p>Get the project files from your repository and navigate to the directory.</p>
+                        <div class="cmd-block">
+                            <code>cd "path/to/Agent Development"</code>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Install Dependencies</h4>
+                        <p>Install all required npm packages using npm.</p>
+                        <div class="cmd-block">
+                            <code>npm install</code>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Start the Application</h4>
+                        <p>Choose one of two startup modes below based on your needs.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: RUNNING THE APPLICATION -->
+        <section class="section">
+            <div class="section-label">02 / Running the Application</div>
+            <h2>Startup Options</h2>
+
+            <h3>🚀 Easiest Way: Automated Startup Scripts</h3>
+            <p>Use one of the provided startup scripts to automatically launch all three processes. Scripts automatically clean up any existing node processes before starting.</p>
+
+            <div style="background: var(--surface); border: 1px solid var(--line); padding: 16px; margin: 16px 0; border-left: 3px solid var(--positive);">
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="padding-bottom: 12px; border-bottom: 1px solid var(--line);">
+                        <div style="font-weight: 600; margin-bottom: 6px; font-family: 'JetBrains Mono'; color: var(--positive);">⭐ 1️⃣ PowerShell Script (Recommended)</div>
+                        <div class="cmd-block" style="margin-top: 8px;">
+                            <code>.\start-all.ps1</code>
+                        </div>
+                        <div style="font-size: 12px; color: var(--muted); margin-top: 6px;">
+                            ✓ Opens 3 separate windows · ✓ Auto-cleanup old processes · ✓ Verifies startup<br>
+                            Stop with: <code>.\stop-all.ps1</code><br>
+                            <span style="font-size: 11px; color: var(--muted);">Arrange windows side-by-side for easy monitoring</span>
+                        </div>
+                    </div>
+
+                    <div style="padding-bottom: 12px; border-bottom: 1px solid var(--line);">
+                        <div style="font-weight: 600; margin-bottom: 6px; font-family: 'JetBrains Mono';">2️⃣ Batch File Wrapper</div>
+                        <div class="cmd-block" style="margin-top: 8px;">
+                            <code>start-all.bat</code>
+                        </div>
+                        <div style="font-size: 12px; color: var(--muted); margin-top: 6px;">
+                            ✓ Double-click from File Explorer · ✓ Auto-cleanup · ✓ Windows-native<br>
+                            Stop with: <code>.\stop-all.bat</code>
+                        </div>
+                    </div>
+
+                    <div style="padding-bottom: 12px; border-bottom: 1px solid var(--line);">
+                        <div style="font-weight: 600; margin-bottom: 6px; font-family: 'JetBrains Mono';">3️⃣ NPM Script (Simple)</div>
+                        <div class="cmd-block" style="margin-top: 8px;">
+                            <code>npm run start:all</code>
+                        </div>
+                        <div style="font-size: 12px; color: var(--muted); margin-top: 6px;">Runs all three in one terminal (mixed output)</div>
+                    </div>
+
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 6px; font-family: 'JetBrains Mono';">4️⃣ Node.js Script (Cross-Platform)</div>
+                        <div class="cmd-block" style="margin-top: 8px;">
+                            <code>node start-all.js</code>
+                        </div>
+                        <div style="font-size: 12px; color: var(--muted); margin-top: 6px;">Works on Windows, Mac, and Linux</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="callout">
+                <p><strong>✅ Recommended Workflow:</strong> Use <code>.\start-all.ps1</code> to start and <code>.\stop-all.ps1</code> to stop. This provides a complete clean startup and shutdown with no leftover processes or windows.</p>
+            </div>
+
+            <h3>Port Configuration</h3>
+            <p>The startup script automatically sets the correct ports:</p>
+            <ul>
+                <li><strong>Frontend:</strong> PORT=3000 (React Dev Server)</li>
+                <li><strong>Backend:</strong> PORT=5000 (Express API Server)</li>
+                <li><strong>BA Agent:</strong> Listens for jobs from MongoDB queue</li>
+            </ul>
+            <p style="font-size: 13px; color: var(--muted); margin-top: 12px;">The frontend explicitly sets <code>PORT=3000</code> to prevent port conflicts with the backend.</p>
+
+            <h3>Organizing Your Windows</h3>
+            <p>When the 3 windows open, arrange them side-by-side for easy monitoring:</p>
+            <ul>
+                <li><strong>Left window:</strong> Frontend (npm start on port 3000) - shows React dev server logs</li>
+                <li><strong>Middle window:</strong> Backend (npm run server on port 5000) - shows API server logs</li>
+                <li><strong>Right window:</strong> BA Agent (npm run ba-agent) - shows agent processing logs</li>
+            </ul>
+
+            <h3>Manual Startup: Three Separate Windows (If Scripts Don't Work)</h3>
+            <p><strong>Note:</strong> Use the startup scripts above instead. Only use this method if you encounter issues with the automated scripts.</p>
+
+            <h3>Frontend Only (Development)</h3>
+            <p>Start the React development server with hot reload. Access the UI at <code>http://localhost:3000</code></p>
+            <div class="cmd-block">
+                <code>npm start</code>
+            </div>
+            <p style="margin-top: 12px; color: var(--muted); font-size: 13px;">✓ Fast startup · ✓ Hot module reload · ✗ Backend agents unavailable</p>
+
+            <h3>Full Stack with Agents (Automated - Recommended)</h3>
+            <p><strong>Use one of the startup scripts above.</strong> They automatically manage all three processes for you.</p>
+
+            <p style="margin-top: 16px; font-size: 13px; color: var(--muted);"><strong>If you prefer manual control,</strong> open three separate windows and follow the steps below.</p>
+
+            <h3 style="border-top: 1px solid var(--line); padding-top: 16px;">Full Stack with Agents (Manual Setup)</h3>
+
+            <div style="background: var(--surface); border: 1px solid var(--line); padding: 16px; margin: 16px 0; border-left: 3px solid var(--positive);">
+                <div style="font-weight: 600; margin-bottom: 12px; color: var(--positive);">✓ Complete Setup (3 Windows)</div>
+
+                <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--line);">
+                    <div style="font-weight: 600; margin-bottom: 6px; font-family: 'JetBrains Mono';">Window 1: Frontend</div>
+                    <div class="cmd-block" style="margin-top: 8px; border-left: 3px solid #b08d3a;">
+                        <code>npm start</code>
+                    </div>
+                    <div style="font-size: 12px; color: var(--muted); margin-top: 6px;">Opens http://localhost:3000 with hot reload</div>
+                </div>
+
+                <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--line);">
+                    <div style="font-weight: 600; margin-bottom: 6px; font-family: 'JetBrains Mono';">Window 2: Backend Server</div>
+                    <div class="cmd-block" style="margin-top: 8px; border-left: 3px solid #b08d3a;">
+                        <code>npm run server</code>
+                    </div>
+                    <div style="font-size: 12px; color: var(--muted); margin-top: 6px;">API server on http://localhost:5000 · Manages projects and jobs</div>
+                </div>
+
+                <div style="margin-bottom: 0;">
+                    <div style="font-weight: 600; margin-bottom: 6px; font-family: 'JetBrains Mono';">Window 3: BA Agent Process</div>
+                    <div class="cmd-block" style="margin-top: 8px; border-left: 3px solid #b08d3a;">
+                        <code>npm run ba-agent</code>
+                    </div>
+                    <div style="font-size: 12px; color: var(--muted); margin-top: 6px;">Business Analyst agent using Claude CLI · Processes PDD analysis jobs</div>
+                </div>
+            </div>
+
+            <div class="callout">
+                <p><strong>Step-by-step:</strong> Open three terminal windows in the project directory. Run each command above in its own window. Start them in order: Frontend → Backend → Agent. All three must be running for full functionality.</p>
+            </div>
+
+            <h3>Simplified Setup (Frontend + Backend Only)</h3>
+            <p>Use the <code>npm run dev</code> command to start both frontend and backend in one window (agent functionality unavailable).</p>
+            <div class="cmd-block">
+                <code>npm run dev</code>
+            </div>
+            <p style="margin-top: 12px; color: var(--muted); font-size: 13px;">✓ Easier startup · ✓ Basic functionality · ✗ No AI agent processing</p>
+
+            <h3>Backend Only (Server)</h3>
+            <p>Start only the backend server (useful for API testing or production).</p>
+            <div class="cmd-block">
+                <code>npm run server</code>
+            </div>
+            <p style="margin-top: 12px; color: var(--muted); font-size: 13px;">Server runs on <code>http://localhost:5000</code></p>
+
+            <h3>Build for Production</h3>
+            <p>Create an optimized production build in the <code>/build</code> directory.</p>
+            <div class="cmd-block">
+                <code>npm run build</code>
+            </div>
+
+            <div class="callout">
+                <p><strong>💡 Key Point:</strong> The three-window setup is <em>required</em> for full functionality with AI agent processing. Each window runs a critical component that cannot be combined.</p>
+            </div>
+
+            <h3>Quick Start Checklist (Using Startup Scripts)</h3>
+            <div style="background: var(--surface); border: 1px solid var(--line); padding: 16px; margin: 16px 0;">
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; gap: 12px;">
+                        <input type="checkbox" id="check1" disabled checked style="cursor: default;">
+                        <label for="check1" style="flex: 1; cursor: default;">
+                            <strong>Step 1:</strong> Navigate to project directory in terminal
+                        </label>
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <input type="checkbox" id="check2" disabled checked style="cursor: default;">
+                        <label for="check2" style="flex: 1; cursor: default;">
+                            <strong>Step 2:</strong> Run <code>.\start-all.ps1</code> or <code>npm run start:all</code>
+                        </label>
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <input type="checkbox" id="check3" disabled checked style="cursor: default;">
+                        <label for="check3" style="flex: 1; cursor: default;">
+                            <strong>Step 3:</strong> Script cleans up old processes and opens 3 windows
+                        </label>
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <input type="checkbox" id="check4" disabled checked style="cursor: default;">
+                        <label for="check4" style="flex: 1; cursor: default;">
+                            <strong>Step 4:</strong> Wait for "Ready to go!" message (10-20 seconds)
+                        </label>
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <input type="checkbox" id="check5" disabled checked style="cursor: default;">
+                        <label for="check5" style="flex: 1; cursor: default;">
+                            <strong>Step 5:</strong> Visit <code>http://localhost:3000</code> and start using platform
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Verifying Everything is Running</h3>
+            <ul>
+                <li><strong>Frontend:</strong> http://localhost:3000 shows the dashboard</li>
+                <li><strong>Backend:</strong> http://localhost:5000/api/health returns <code>{"status":"ok"}</code></li>
+                <li><strong>BA Agent:</strong> Console shows "✓ BA Agent running" and listens for jobs</li>
+            </ul>
+
+            <h3>Stopping the Services</h3>
+            <p>When you're done, stop all services using one of these methods:</p>
+
+            <div style="background: var(--surface); border: 1px solid var(--line); padding: 16px; margin: 16px 0; border-left: 3px solid var(--positive);">
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="padding-bottom: 12px; border-bottom: 1px solid var(--line);">
+                        <div style="font-weight: 600; margin-bottom: 6px; font-family: 'JetBrains Mono'; color: var(--positive);">⭐ Option 1: Stop Script (Recommended)</div>
+                        <div class="cmd-block" style="margin-top: 8px;">
+                            <code>.\stop-all.ps1</code>
+                        </div>
+                        <div style="font-size: 12px; color: var(--muted); margin-top: 6px;">
+                            ✓ Terminates all node processes<br>
+                            ✓ Closes spawned PowerShell windows<br>
+                            ✓ Frees ports 3000 and 5000<br>
+                            ✓ Complete clean shutdown
+                        </div>
+                    </div>
+
+                    <div style="padding-bottom: 12px; border-bottom: 1px solid var(--line);">
+                        <div style="font-weight: 600; margin-bottom: 6px; font-family: 'JetBrains Mono';">Option 2: Batch File</div>
+                        <div class="cmd-block" style="margin-top: 8px;">
+                            <code>.\stop-all.bat</code>
+                        </div>
+                        <div style="font-size: 12px; color: var(--muted); margin-top: 6px;">Windows batch alternative - does the same as PowerShell version</div>
+                    </div>
+
+                    <div style="padding-bottom: 12px; border-bottom: 1px solid var(--line);">
+                        <div style="font-weight: 600; margin-bottom: 6px;">Option 3: Close Windows Manually</div>
+                        <div style="font-size: 12px; color: var(--muted);">Click the X button on each of the three service windows</div>
+                    </div>
+
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 6px;">Option 4: Keyboard Shortcut</div>
+                        <div style="font-size: 12px; color: var(--muted);">Press <code>Ctrl+C</code> in each service window to stop individually</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="callout">
+                <p><strong>💡 Tip:</strong> Use the stop script for a complete clean shutdown that also closes the PowerShell windows spawned by the startup script. This prepares the system for a fresh restart.</p>
+            </div>
+        </section>
+
+        <!-- SECTION 3: KEY FUNCTIONALITIES -->
+        <section class="section">
+            <div class="section-label">03 / Key Functionalities</div>
+            <h2>Platform Features Overview</h2>
+            <p>The A-ADLC Platform implements the Agentic Automation Development Lifecycle framework with five specialized agent roles and an intuitive workflow system.</p>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>📊 Project Dashboard</h3>
+                    <p>View all projects, track progress metrics, monitor outstanding requests across workflow stages, and see recent project activity at a glance.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>📋 Project Management</h3>
+                    <p>Create new projects, view detailed project information, track current phase and target dates, and manage project lifecycle.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>🤖 Five Agent Roles</h3>
+                    <p>Business Analyst, Architect, Tech Lead, Developer, and QA Agent — each with specialized capabilities for different workflow stages.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>📄 PDD Workflow</h3>
+                    <p>Complete Product Design Document workflow including document upload, BA analysis, gap identification, and approval process.</p>
+                </div>
+            </div>
+
+            <h3>Workflow Stages</h3>
+            <p>The platform tracks projects through six key workflow stages:</p>
+            <table class="agent-table">
+                <thead>
+                    <tr>
+                        <th>Stage</th>
+                        <th>Agent Responsible</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>PDD Review</strong></td>
+                        <td>Business Analyst Agent</td>
+                        <td>Review and analyze Product Design Documents for completeness and clarity</td>
+                        <td><span class="status-badge status-ready">Active</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Solution Design (SDD)</strong></td>
+                        <td>Architect Agent</td>
+                        <td>Create high-level solution architecture and design specifications</td>
+                        <td><span class="status-badge status-ready">Active</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Technical Design (TDD)</strong></td>
+                        <td>Tech Lead Agent</td>
+                        <td>Decompose solution into technical components and specifications</td>
+                        <td><span class="status-badge status-ready">Active</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Development</strong></td>
+                        <td>Developer Agent</td>
+                        <td>Generate and implement code based on technical specifications</td>
+                        <td><span class="status-badge status-ready">Active</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>QA SIT</strong></td>
+                        <td>QA Agent</td>
+                        <td>System Integration Testing and validation</td>
+                        <td><span class="status-badge status-ready">Active</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>QA UAT</strong></td>
+                        <td>QA Agent</td>
+                        <td>User Acceptance Testing and final approval</td>
+                        <td><span class="status-badge status-ready">Active</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- SECTION 4: MAIN PAGES -->
+        <section class="section">
+            <div class="section-label">04 / Application Pages</div>
+            <h2>Navigation & Pages</h2>
+
+            <h3>Main Routes</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Route</th>
+                        <th>Page Name</th>
+                        <th>Purpose</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>/</code></td>
+                        <td>Dashboard</td>
+                        <td>Main project overview, statistics, and outstanding requests</td>
+                    </tr>
+                    <tr>
+                        <td><code>/new-project</code></td>
+                        <td>PDD Workflow</td>
+                        <td>Create new project and submit PDD for analysis</td>
+                    </tr>
+                    <tr>
+                        <td><code>/project/:id</code></td>
+                        <td>Project Detail</td>
+                        <td>View specific project status, phases, and next actions</td>
+                    </tr>
+                    <tr>
+                        <td><code>/ba-agent</code></td>
+                        <td>Business Analyst Agent</td>
+                        <td>PDD analysis, gap identification, and business requirements review</td>
+                    </tr>
+                    <tr>
+                        <td><code>/arch-agent</code></td>
+                        <td>Architect Agent</td>
+                        <td>Solution design, system architecture, and design decisions</td>
+                    </tr>
+                    <tr>
+                        <td><code>/tl-agent</code></td>
+                        <td>Tech Lead Agent</td>
+                        <td>Technical decomposition, low-level design, and component specification</td>
+                    </tr>
+                    <tr>
+                        <td><code>/dev-agent</code></td>
+                        <td>Developer Agent</td>
+                        <td>Code generation, implementation, and technical delivery</td>
+                    </tr>
+                    <tr>
+                        <td><code>/qa-agent</code></td>
+                        <td>QA Agent</td>
+                        <td>Testing coordination, validation, and quality assurance</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- SECTION 5: AGENT CAPABILITIES -->
+        <section class="section">
+            <div class="section-label">05 / Agent Capabilities</div>
+            <h2>Five Specialized Agents</h2>
+
+            <h3>1. Business Analyst Agent</h3>
+            <p>Analyzes Product Design Documents and provides business-level insights.</p>
+            <ul>
+                <li>Reviews PDD completeness and clarity</li>
+                <li>Identifies missing business requirements</li>
+                <li>Generates gap analysis reports</li>
+                <li>Validates success criteria and scope</li>
+            </ul>
+
+            <h3>2. Architect Agent</h3>
+            <p>Designs high-level solution architecture and system design.</p>
+            <ul>
+                <li>Creates solution design documents (SDD)</li>
+                <li>Designs system architecture</li>
+                <li>Specifies component interactions</li>
+                <li>Defines integration points and interfaces</li>
+            </ul>
+
+            <h3>3. Tech Lead Agent</h3>
+            <p>Decomposes solutions into technical components and specifications.</p>
+            <ul>
+                <li>Creates technical design documents (TDD)</li>
+                <li>Defines low-level system components</li>
+                <li>Specifies technical requirements</li>
+                <li>Plans implementation approach</li>
+            </ul>
+
+            <h3>4. Developer Agent</h3>
+            <p>Generates and implements code based on specifications.</p>
+            <ul>
+                <li>Generates source code</li>
+                <li>Implements features and components</li>
+                <li>Follows coding standards and best practices</li>
+                <li>Creates implementation documentation</li>
+            </ul>
+
+            <h3>5. QA Agent</h3>
+            <p>Manages testing and quality assurance throughout the lifecycle.</p>
+            <ul>
+                <li>Plans testing strategy (SIT and UAT)</li>
+                <li>Creates test cases and scenarios</li>
+                <li>Validates functionality and performance</li>
+                <li>Reports defects and quality metrics</li>
+            </ul>
+        </section>
+
+        <!-- SECTION 6: WORKFLOW EXAMPLE -->
+        <section class="section">
+            <div class="section-label">06 / Typical Workflow</div>
+            <h2>End-to-End Project Flow</h2>
+
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Create New Project</h4>
+                        <p>Navigate to <code>/new-project</code> and fill in project information (name, description, business context).</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Submit PDD</h4>
+                        <p>Upload your Product Design Document (PDF, Word, or Excel format). The BA Agent immediately begins analysis.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Review BA Analysis</h4>
+                        <p>Review the Business Analyst's analysis on the <code>/ba-agent</code> page. Address any identified gaps.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>Upload Revised PDD</h4>
+                        <p>Submit revised PDD incorporating feedback. The system moves to Architecture phase.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h4>Architecture Design</h4>
+                        <p>View Solution Design Documents (SDD) created by the Architect Agent on <code>/arch-agent</code>.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">6</div>
+                    <div class="step-content">
+                        <h4>Technical Decomposition</h4>
+                        <p>Review Technical Design Documents (TDD) from Tech Lead Agent on <code>/tl-agent</code>.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">7</div>
+                    <div class="step-content">
+                        <h4>Code Generation & Development</h4>
+                        <p>Review generated code and implementation artifacts on <code>/dev-agent</code>.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">8</div>
+                    <div class="step-content">
+                        <h4>Quality Assurance</h4>
+                        <p>Review testing results, test cases, and QA reports on <code>/qa-agent</code>.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">9</div>
+                    <div class="step-content">
+                        <h4>Project Completion</h4>
+                        <p>After UAT approval, the project is marked as completed on the Dashboard.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 7: TECH STACK -->
+        <section class="section">
+            <div class="section-label">07 / Technology Stack</div>
+            <h2>Technology & Dependencies</h2>
+
+            <h3>Frontend</h3>
+            <ul>
+                <li><strong>React 18.2.0</strong> — UI framework with hooks</li>
+                <li><strong>React Router 6.20.0</strong> — Client-side routing</li>
+                <li><strong>Custom CSS</strong> — Design system tokens and responsive layout</li>
+            </ul>
+
+            <h3>Backend (Optional)</h3>
+            <ul>
+                <li><strong>Node.js + Express</strong> — Server framework</li>
+                <li><strong>MongoDB 6.3.0</strong> — Database for project and request storage</li>
+                <li><strong>Mammoth 1.12.0</strong> — Document format conversion (Word/PDF to HTML)</li>
+            </ul>
+
+            <h3>Build & Development</h3>
+            <ul>
+                <li><strong>React Scripts 5.0.1</strong> — Create React App build tooling</li>
+                <li><strong>Concurrently 8.2.2</strong> — Run frontend and backend simultaneously</li>
+            </ul>
+
+            <h3>Design System</h3>
+            <ul>
+                <li><strong>Fraunces</strong> — Display/headline font (serif)</li>
+                <li><strong>Geist</strong> — Body text font (sans-serif)</li>
+                <li><strong>JetBrains Mono</strong> — Numerical and code display</li>
+            </ul>
+        </section>
+
+        <!-- SECTION 8: CONFIGURATION -->
+        <section class="section">
+            <div class="section-label">08 / Configuration & Customization</div>
+            <h2>Environment & Settings</h2>
+
+            <h3>Environment Variables</h3>
+            <p>Create a <code>.env</code> file in the root directory with the following (optional for development):</p>
+            <pre>REACT_APP_API_URL=http://localhost:5000
+REACT_APP_TIMEOUT=30000</pre>
+
+            <h3>Project Structure</h3>
+            <pre>Agent Development/
+├── public/
+│   └── index.html
+├── src/
+│   ├── pages/
+│   │   ├── Dashboard.jsx
+│   │   ├── PDDWorkflow.jsx
+│   │   ├── ProjectDetail.jsx
+│   │   ├── BAAgent.jsx
+│   │   ├── ArchAgent.jsx
+│   │   ├── TLAgent.jsx
+│   │   ├── DevAgent.jsx
+│   │   └── QAAgent.jsx
+│   ├── App.jsx
+│   ├── index.css
+│   └── api.js
+├── server/
+│   ├── index.js
+│   └── agents/
+├── package.json
+└── CLAUDE.md</pre>
+
+            <h3>Styling & Theme</h3>
+            <p>All styles are in <code>src/index.css</code> using CSS variables. To customize colors:</p>
+            <ul>
+                <li>Edit the <code>:root</code> color variables in <code>src/index.css</code></li>
+                <li>Dark mode automatically applies via <code>[data-theme="dark"]</code> selector</li>
+                <li>No rounded corners or shadows per design system rules</li>
+            </ul>
+        </section>
+
+        <!-- SECTION 9: DATABASE MANAGEMENT -->
+        <section class="section">
+            <div class="section-label">09 / Database Management</div>
+            <h2>Clear Database & Start Fresh</h2>
+
+            <p>To reset the database and start with a clean slate:</p>
+
+            <div class="cmd-block">
+                <code>node clear-db.js</code>
+            </div>
+
+            <p style="margin-top: 16px;"><strong>What it does:</strong></p>
+            <ul>
+                <li>Connects to MongoDB (aadlc database)</li>
+                <li>Drops all collections (projects, jobs, etc.)</li>
+                <li>Prepares database for fresh testing</li>
+            </ul>
+
+            <p style="margin-top: 16px;"><strong>Use this when:</strong></p>
+            <ul>
+                <li>Starting a fresh test cycle</li>
+                <li>Testing the complete PDD workflow again</li>
+                <li>Cleaning up old projects and submissions</li>
+            </ul>
+
+            <div class="callout">
+                <p><strong>💾 Before clearing:</strong> Make sure you've stopped the application with <code>.\stop-all.ps1</code>, otherwise MongoDB operations may be locked.</p>
+            </div>
+        </section>
+
+        <!-- SECTION 10: TROUBLESHOOTING -->
+        <section class="section">
+            <div class="section-label">10 / Troubleshooting</div>
+            <h2>Common Issues & Solutions</h2>
+
+            <h3>Port Already in Use</h3>
+            <p><strong>Problem:</strong> "Port 3000 is already in use"</p>
+            <p><strong>Solution:</strong> Kill the existing process or specify a different port:</p>
+            <div class="cmd-block">
+                <code>PORT=3001 npm start</code>
+            </div>
+
+            <h3>Dependencies Not Installing</h3>
+            <p><strong>Problem:</strong> npm install fails with errors</p>
+            <p><strong>Solution:</strong> Clear npm cache and reinstall:</p>
+            <pre>npm cache clean --force
+rm -rf node_modules package-lock.json
+npm install</pre>
+
+            <h3>Backend Connection Issues</h3>
+            <p><strong>Problem:</strong> "Cannot connect to backend" or 404 errors on API calls</p>
+            <p><strong>Solution:</strong> Ensure backend is running with <code>npm run dev</code> or <code>npm run server</code></p>
+
+            <h3>Styling Not Applied</h3>
+            <p><strong>Problem:</strong> CSS changes not showing</p>
+            <p><strong>Solution:</strong> Hard refresh browser (Ctrl+Shift+R) to clear cached CSS</p>
+
+            <h3>MongoDB Connection Failed</h3>
+            <p><strong>Problem:</strong> Backend fails to start with MongoDB errors</p>
+            <p><strong>Solution:</strong> Check MongoDB is running and connection string is correct in <code>server/index.js</code></p>
+
+            <h3>Agent Not Processing Jobs</h3>
+            <p><strong>Problem:</strong> Created a project but BA Agent analysis doesn't start</p>
+            <p><strong>Solution:</strong> Ensure all three windows are running. The BA Agent window must show "✓ BA Agent running" in the console. Check that <code>npm run ba-agent</code> started without errors.</p>
+
+            <h3>Forgot to Open One of the Three Windows</h3>
+            <p><strong>Problem:</strong> Application partially works but some features unavailable</p>
+            <p><strong>Solution:</strong> Open the missing window and start the corresponding process:
+                <ul style="margin-top: 8px;">
+                    <li>Missing frontend? Start <code>npm start</code></li>
+                    <li>Missing backend? Start <code>npm run server</code></li>
+                    <li>Missing agent? Start <code>npm run ba-agent</code></li>
+                </ul>
+            </p>
+
+            <h3>Can't Stop Services or Ports Still in Use</h3>
+            <p><strong>Problem:</strong> <code>Ctrl+C</code> isn't working or ports 3000/5000 show "address already in use"</p>
+            <p><strong>Solution:</strong> Use the stop script to forcefully terminate all processes:</p>
+            <div class="cmd-block" style="margin: 12px 0;">
+                <code>.\stop-all.ps1</code>
+            </div>
+            <p style="font-size: 12px; color: var(--muted); margin-top: 8px;">Or kill processes manually:</p>
+            <div class="cmd-block" style="margin: 12px 0;">
+                <code>taskkill /IM node.exe /F</code>
+            </div>
+
+            <div class="callout">
+                <p><strong>📚 For detailed startup instructions:</strong> See <code>STARTUP_GUIDE.md</code> for all startup methods, troubleshooting, environment setup, and process management.</p>
+            </div>
+        </section>
+
+        <!-- SECTION 10: NEXT STEPS -->
+        <section class="section">
+            <div class="section-label">11 / Next Steps & Production</div>
+            <h2>Roadmap & Enhancement</h2>
+
+            <h3>Immediate (Development Phase)</h3>
+            <ul>
+                <li>Test all agent workflows end-to-end</li>
+                <li>Verify document upload and processing</li>
+                <li>Validate project creation and tracking</li>
+                <li>Test theme toggle (light/dark mode)</li>
+            </ul>
+
+            <h3>Short Term (Production Prep)</h3>
+            <ul>
+                <li>Add error handling and validation</li>
+                <li>Implement loading states and spinners</li>
+                <li>Add unit tests with Jest/React Testing Library</li>
+                <li>Set up CI/CD pipeline for automated testing</li>
+            </ul>
+
+            <h3>Medium Term (Enhancements)</h3>
+            <ul>
+                <li>Add TypeScript for type safety</li>
+                <li>Implement proper state management (Redux or Context API)</li>
+                <li>Create reusable component library</li>
+                <li>Add user authentication and authorization</li>
+            </ul>
+
+            <h3>Long Term (Scalability)</h3>
+            <ul>
+                <li>Implement WebSocket for real-time updates</li>
+                <li>Add advanced reporting and analytics</li>
+                <li>Create mobile-responsive optimizations</li>
+                <li>Integrate with external API services</li>
+            </ul>
+
+            <h3>Production Build</h3>
+            <p>Create optimized production build:</p>
+            <div class="cmd-block">
+                <code>npm run build</code>
+            </div>
+            <p style="margin-top: 12px;">Output is in the <code>/build</code> directory, ready for deployment to hosting services.</p>
+        </section>
+
+        <footer>
+            A-ADLC Platform · Solution Guide · Last Updated May 12, 2026 · v1.2.0<br>
+            See also: <code>STARTUP_GUIDE.md</code>, <code>start-all.ps1</code>, <code>stop-all.ps1</code>, <code>clear-db.js</code>
+        </footer>
+    </div>
+
+    <script>
+        // Theme toggle functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            const button = document.querySelector('.theme-toggle');
+            button.textContent = newTheme === 'dark' ? '☀️ Light' : '🌙 Dark';
+        }
+
+        // Load saved theme preference
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+
+            const button = document.querySelector('.theme-toggle');
+            button.textContent = savedTheme === 'dark' ? '☀️ Light' : '🌙 Dark';
+        });
+    </script>
+</body>
+</html>

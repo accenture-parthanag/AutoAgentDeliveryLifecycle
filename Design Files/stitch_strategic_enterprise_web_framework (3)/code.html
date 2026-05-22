@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Architecture &amp; Strategy | A-ADLC</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container": "#eeeeee",
+                      "outline": "#73777d",
+                      "on-primary-fixed-variant": "#34495b",
+                      "surface-bright": "#f9f9f9",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-container-low": "#f3f3f3",
+                      "on-error-container": "#93000a",
+                      "inverse-surface": "#2f3131",
+                      "on-secondary-fixed-variant": "#464747",
+                      "primary-fixed": "#cfe5fb",
+                      "tertiary-fixed-dim": "#90cdff",
+                      "error": "#ba1a1a",
+                      "surface-container-high": "#e8e8e8",
+                      "primary-container": "#061d2d",
+                      "on-tertiary-fixed-variant": "#004b72",
+                      "secondary-container": "#e1dfdf",
+                      "inverse-primary": "#b3c9de",
+                      "on-secondary": "#ffffff",
+                      "on-background": "#1a1c1c",
+                      "on-primary-fixed": "#061d2d",
+                      "surface": "#f9f9f9",
+                      "primary": "#000000",
+                      "on-error": "#ffffff",
+                      "surface-container-highest": "#e2e2e2",
+                      "surface-tint": "#4c6173",
+                      "error-container": "#ffdad6",
+                      "background": "#f9f9f9",
+                      "on-secondary-container": "#636262",
+                      "tertiary-container": "#001e31",
+                      "on-surface": "#1a1c1c",
+                      "primary-fixed-dim": "#b3c9de",
+                      "on-surface-variant": "#43474c",
+                      "outline-variant": "#c3c7cc",
+                      "tertiary": "#000000",
+                      "secondary-fixed-dim": "#c7c6c6",
+                      "on-secondary-fixed": "#1b1c1c",
+                      "on-primary": "#ffffff",
+                      "secondary-fixed": "#e4e2e2",
+                      "on-tertiary-fixed": "#001e31",
+                      "on-tertiary-container": "#258bc8",
+                      "inverse-on-surface": "#f1f1f1",
+                      "tertiary-fixed": "#cbe6ff",
+                      "on-tertiary": "#ffffff",
+                      "surface-dim": "#dadada",
+                      "surface-variant": "#e2e2e2",
+                      "secondary": "#5e5e5e",
+                      "on-primary-container": "#71869a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "lg": "48px",
+                      "gutter": "24px",
+                      "md": "24px",
+                      "sm": "12px",
+                      "base": "8px",
+                      "container-max": "1280px",
+                      "xs": "4px",
+                      "xl": "80px"
+              },
+              "fontFamily": {
+                      "data-tabular": [
+                              "Inter"
+                      ],
+                      "label-bold": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "display-lg-mobile": [
+                              "Source Serif 4"
+                      ],
+                      "headline-md": [
+                              "Source Serif 4"
+                      ],
+                      "display-lg": [
+                              "Source Serif 4"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Source Serif 4"
+                      ]
+              },
+              "fontSize": {
+                      "data-tabular": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "label-bold": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg-mobile": [
+                              "36px",
+                              {
+                                      "lineHeight": "44px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "56px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-body-md text-body-md antialiased min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="fixed w-full top-0 h-16 bg-surface-container-lowest border-b border-outline-variant flex justify-between items-center px-gutter z-50">
+<div class="font-headline-md text-headline-md font-bold text-primary">
+            A-ADLC Agentic Lifecycle
+        </div>
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined text-primary cursor-pointer active:opacity-70 transition-opacity duration-150 hover:bg-surface-container-low rounded-full p-xs">notifications</span>
+<span class="material-symbols-outlined text-primary cursor-pointer active:opacity-70 transition-opacity duration-150 hover:bg-surface-container-low rounded-full p-xs">account_circle</span>
+<span class="material-symbols-outlined text-primary cursor-pointer active:opacity-70 transition-opacity duration-150 hover:bg-surface-container-low rounded-full p-xs">settings</span>
+</div>
+</header>
+<div class="flex flex-1 pt-16 h-full">
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col justify-between fixed left-0 top-16 w-64 h-[calc(100vh-64px)] bg-surface-container-low border-r border-outline-variant py-md z-40 overflow-y-auto">
+<div>
+<div class="px-4 mb-lg">
+<h2 class="font-headline-md text-headline-md font-bold text-primary">A-ADLC Hub</h2>
+<div class="flex items-center gap-xs mt-xs text-on-surface-variant font-body-sm text-body-sm">
+<span class="w-2 h-2 rounded-full bg-[#007DBA]"></span>
+                        v1.2 Agent Status: Active
+                    </div>
+</div>
+<nav class="flex flex-col gap-xs font-label-bold text-label-bold">
+<a class="text-on-surface-variant px-4 py-3 flex items-center gap-3 hover:text-on-surface hover:bg-surface-container-high transition-all scale-100 active:scale-[0.98] duration-100" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                        Executive Overview
+                    </a>
+<a class="text-on-surface-variant px-4 py-3 flex items-center gap-3 hover:text-on-surface hover:bg-surface-container-high transition-all scale-100 active:scale-[0.98] duration-100" href="#">
+<span class="material-symbols-outlined">security</span>
+                        Requirement Hardening
+                    </a>
+<!-- Active State -->
+<a class="bg-surface-container-high text-primary border-l-4 border-primary px-4 py-3 flex items-center gap-3 scale-100 active:scale-[0.98] transition-transform duration-100" href="#">
+<span class="material-symbols-outlined">architecture</span>
+                        Architecture &amp; Strategy
+                    </a>
+<a class="text-on-surface-variant px-4 py-3 flex items-center gap-3 hover:text-on-surface hover:bg-surface-container-high transition-all scale-100 active:scale-[0.98] duration-100" href="#">
+<span class="material-symbols-outlined">account_tree</span>
+                        Technical Decomposition
+                    </a>
+<a class="text-on-surface-variant px-4 py-3 flex items-center gap-3 hover:text-on-surface hover:bg-surface-container-high transition-all scale-100 active:scale-[0.98] duration-100" href="#">
+<span class="material-symbols-outlined">biotech</span>
+                        Build &amp; Validation
+                    </a>
+</nav>
+</div>
+<div class="mt-auto px-4 flex flex-col gap-md">
+<button class="w-full bg-primary-container text-on-primary font-label-bold text-label-bold py-sm px-md rounded-none border border-primary-container hover:opacity-90 transition-opacity">
+                    Initiate New ADLC Phase
+                </button>
+<div class="flex flex-col gap-xs border-t border-outline-variant pt-4">
+<a class="text-on-surface-variant px-2 py-2 flex items-center gap-3 hover:text-on-surface text-body-sm font-body-sm" href="#">
+<span class="material-symbols-outlined text-[18px]">gavel</span>
+                        Governance
+                    </a>
+<a class="text-on-surface-variant px-2 py-2 flex items-center gap-3 hover:text-on-surface text-body-sm font-body-sm" href="#">
+<span class="material-symbols-outlined text-[18px]">copyright</span>
+                        McKinsey Branding
+                    </a>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 ml-0 md:ml-64 bg-background flex flex-col min-h-[calc(100vh-64px)] overflow-y-auto">
+<div class="max-w-[1280px] w-full mx-auto px-4 md:px-gutter py-xl flex-1 flex flex-col">
+<header class="mb-lg border-b border-outline-variant pb-md">
+<div class="font-label-bold text-label-bold text-outline uppercase tracking-widest mb-xs">Phase B Output</div>
+<h1 class="font-display-lg text-display-lg text-primary">Architecture &amp; Strategy</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-sm max-w-3xl">
+                        Strategic output generated by the Arch Agent based on the finalized PDD. This document defines the technical infrastructure, stack selection, and high-level component interaction necessary for successful deployment.
+                    </p>
+</header>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter flex-1">
+<!-- Left Column: Data & Visuals (Span 8) -->
+<div class="lg:col-span-8 flex flex-col gap-gutter">
+<!-- Tech Stack Recommendation -->
+<section class="border border-outline-variant bg-surface-container-lowest p-md">
+<h2 class="font-headline-lg text-headline-lg text-primary mb-md border-b border-outline-variant pb-xs">Tech Stack Selection</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md mt-md">
+<!-- Recommended Stack -->
+<div class="border-2 border-primary-container p-md relative bg-surface-bright">
+<div class="absolute top-0 right-0 bg-primary-container text-on-primary font-label-bold text-label-bold px-sm py-xs">
+                                        RECOMMENDED
+                                    </div>
+<div class="flex items-center gap-sm mb-sm">
+<span class="material-symbols-outlined text-[32px] text-primary-container">code_blocks</span>
+<h3 class="font-headline-md text-headline-md text-primary">Python</h3>
+</div>
+<ul class="flex flex-col gap-xs font-body-sm text-body-sm text-on-surface-variant">
+<li class="flex items-start gap-xs">
+<span class="material-symbols-outlined text-[16px] mt-[2px]">check</span>
+                                            Superior JSON handling capabilities.
+                                        </li>
+<li class="flex items-start gap-xs">
+<span class="material-symbols-outlined text-[16px] mt-[2px]">check</span>
+                                            High scalability for complex API interactions.
+                                        </li>
+<li class="flex items-start gap-xs">
+<span class="material-symbols-outlined text-[16px] mt-[2px]">check</span>
+                                            Lower licensing overhead compared to standard RPA.
+                                        </li>
+</ul>
+</div>
+<!-- Alternative Stack -->
+<div class="border border-outline-variant p-md bg-surface-container-lowest opacity-70">
+<div class="flex items-center gap-sm mb-sm">
+<span class="material-symbols-outlined text-[32px] text-outline">smart_toy</span>
+<h3 class="font-headline-md text-headline-md text-on-surface-variant">Standard RPA</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-sm">e.g., UiPath, BluePrism</p>
+<ul class="flex flex-col gap-xs font-body-sm text-body-sm text-on-surface-variant">
+<li class="flex items-start gap-xs">
+<span class="material-symbols-outlined text-[16px] mt-[2px] text-outline">close</span>
+                                            Overkill for predominantly API-driven processes.
+                                        </li>
+<li class="flex items-start gap-xs">
+<span class="material-symbols-outlined text-[16px] mt-[2px] text-outline">close</span>
+                                            Higher structural rigidity and licensing costs.
+                                        </li>
+</ul>
+</div>
+</div>
+</section>
+<!-- Component Diagram -->
+<section class="border border-outline-variant bg-surface-container-lowest p-md">
+<h2 class="font-headline-lg text-headline-lg text-primary mb-md border-b border-outline-variant pb-xs">High-Level Component Design</h2>
+<div class="mt-xl flex flex-col items-center gap-sm py-lg">
+<!-- API Layer -->
+<div class="w-full max-w-md border border-outline-variant bg-surface-container-low p-sm text-center relative group">
+<div class="font-label-bold text-label-bold text-primary mb-xs">API Automation Layer</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">REST endpoints, Data Ingestion, Authentication</div>
+</div>
+<!-- Connector -->
+<div class="h-8 border-l border-outline-variant flex items-center justify-center relative w-full max-w-md">
+<span class="material-symbols-outlined absolute text-outline-variant bg-surface-container-lowest p-xs rounded-full">arrow_downward</span>
+</div>
+<!-- UI Layer -->
+<div class="w-full max-w-md border border-outline-variant bg-surface-container-low p-sm text-center relative group">
+<div class="font-label-bold text-label-bold text-primary mb-xs">UI Automation Layer</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Selenium / Playwright bindings for legacy interfaces</div>
+</div>
+<!-- Connector -->
+<div class="h-8 border-l border-outline-variant flex items-center justify-center relative w-full max-w-md">
+<span class="material-symbols-outlined absolute text-outline-variant bg-surface-container-lowest p-xs rounded-full">arrow_downward</span>
+</div>
+<!-- Database Layer -->
+<div class="w-full max-w-md border border-outline-variant bg-surface-container-low p-sm text-center relative group">
+<div class="font-label-bold text-label-bold text-primary mb-xs">Database Layer</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">SQL Server / PostgreSQL, Transaction Logging</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Sidebar (Span 4) -->
+<div class="lg:col-span-4">
+<aside class="border-t-4 border-t-primary-container border-x border-b border-outline-variant bg-surface-bright p-md sticky top-24">
+<div class="flex items-center gap-sm mb-md border-b border-outline-variant pb-sm">
+<span class="material-symbols-outlined text-primary-container">lightbulb</span>
+<h3 class="font-headline-md text-headline-md text-primary">Architectural Reasoning</h3>
+</div>
+<div class="flex flex-col gap-md">
+<div>
+<h4 class="font-label-bold text-label-bold text-primary mb-xs uppercase">The "Why" Behind Python</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                                        Selecting Python over traditional RPA tools was driven by the process's heavy reliance on complex API integrations and unstructured data parsing. Python offers superior JSON handling capabilities and a more flexible architecture for building modular, scalable automation routines that do not require continuous desktop interaction.
+                                    </p>
+</div>
+<div class="h-px bg-outline-variant w-full"></div>
+<div>
+<h4 class="font-label-bold text-label-bold text-primary mb-xs uppercase">Volume &amp; Cost Analysis</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                                        Given the anticipated transaction volume, deploying a dedicated RPA bot license would yield a suboptimal ROI. A Python-based microservice architecture allows for horizontal scaling during peak loads without incurring per-bot licensing penalties.
+                                    </p>
+</div>
+<div class="h-px bg-outline-variant w-full"></div>
+<div>
+<h4 class="font-label-bold text-label-bold text-primary mb-xs uppercase">Agentic Handover Notes</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                                        This Solution Design Document (SDD) is specifically formatted to be consumed by the <span class="font-data-tabular text-data-tabular bg-surface-container-high px-1 border border-outline-variant">TL Agent</span> for immediate logic decomposition and pseudocode generation.
+                                    </p>
+</div>
+</div>
+<div class="mt-lg pt-md border-t border-outline-variant">
+<button class="w-full border border-primary-container text-primary-container font-label-bold text-label-bold py-sm px-md hover:bg-surface-container-low transition-colors bg-surface-container-lowest">
+                                    Download Full SDD (PDF)
+                                </button>
+</div>
+</aside>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<footer class="w-full py-md px-gutter flex flex-row justify-between items-center border-t border-outline-variant bg-surface-container-lowest mt-auto">
+<div class="font-label-bold text-label-bold text-outline">
+                    © 2024 A-ADLC Framework | Corporate Governance &amp; Strategic Excellence
+                </div>
+<div class="flex gap-md font-body-sm text-body-sm">
+<a class="text-outline hover:text-primary transition-colors opacity-100 hover:opacity-80" href="#">Privacy Policy</a>
+<a class="text-outline hover:text-primary transition-colors opacity-100 hover:opacity-80" href="#">Terms of Service</a>
+<a class="text-outline hover:text-primary transition-colors opacity-100 hover:opacity-80" href="#">McKinsey Insights</a>
+</div>
+<div class="font-label-bold text-label-bold text-primary">
+                    A-ADLC Agentic Lifecycle
+                </div>
+</footer>
+</main>
+</div>
+</body></html>

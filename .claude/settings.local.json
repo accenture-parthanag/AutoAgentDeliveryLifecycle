@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npm cache *)",
+      "Bash(unzip -l \"Design Files/stitch_strategic_enterprise_web_framework \\(2\\).zip\")",
+      "Bash(npm start *)",
+      "Bash(Get-Content task-id.log -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "Bash(netstat -ano)",
+      "PowerShell(Stop-Process *)",
+      "Bash(pgrep -f \"npm start\")",
+      "Bash(Get-Process node *)",
+      "Bash(Stop-Process -Force -ErrorAction SilentlyContinue)",
+      "Bash(Write-Host \"Stopping dev server...\")",
+      "Bash(Start-Sleep -Seconds 2)",
+      "Bash(pwsh -NoProfile -File start-all.ps1 -ErrorAction Stop)",
+      "Bash(npm list *)",
+      "PowerShell(.\\\\stop-all.ps1)",
+      "Bash(git init *)",
+      "Bash(git config *)",
+      "Bash(git add *)",
+      "Bash(Remove-Item \".git/index.lock\" -Force -ErrorAction SilentlyContinue)",
+      "Bash(git commit -m 'Initial commit: Auto Aagentic Development LifeCycle Platform *)"
+    ]
+  }
+}
