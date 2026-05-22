@@ -23,7 +23,9 @@
       "Bash(Remove-Item \".git/index.lock\" -Force -ErrorAction SilentlyContinue)",
       "Bash(git commit -m 'Initial commit: Auto Aagentic Development LifeCycle Platform *)",
       "Bash(git commit *)",
-      "Bash(git mv *)"
+      "Bash(git mv *)",
+      "Bash(git remote *)",
+      "Bash(node *)"
     ]
   }
 }

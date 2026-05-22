@@ -226,4 +226,34 @@ router.post('/:id/cr-reject', async (req, res) => {
   }
 });
 
+// GET /api/projects/:id/final-pdd - Download the generated Final PDD HTML document
+router.get('/:id/final-pdd', async (req, res) => {
+  try {
+    const db = getDb();
+    const fs = require('fs');
+
+    const project = await db.collection('projects').findOne({
+      _id: new ObjectId(req.params.id)
+    });
+
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    if (!project.finalPddPath) {
+      return res.status(404).json({ error: 'Final PDD has not been generated yet' });
+    }
+    if (!fs.existsSync(project.finalPddPath)) {
+      return res.status(410).json({ error: 'Final PDD file no longer exists on disk' });
+    }
+
+    const safeFileName = `Final-PDD-${(project.name || 'project').replace(/[^a-z0-9-]/gi, '_')}.html`;
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFileName}"`);
+    fs.createReadStream(project.finalPddPath).pipe(res);
+  } catch (error) {
+    console.error('Error serving final PDD:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

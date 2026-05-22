@@ -15,6 +15,8 @@ export default function ProjectDetail() {
   const [tddDispatching, setTddDispatching] = useState(false);
   const [tddStartedAt, setTddStartedAt] = useState(null);
   const [nowTick, setNowTick] = useState(Date.now());
+  const [mermaidRendered, setMermaidRendered] = useState(false);
+  const [finalPddDownloading, setFinalPddDownloading] = useState(false);
 
   useEffect(() => {
     getProject(id)
@@ -48,6 +50,25 @@ export default function ProjectDetail() {
       setTddStartedAt(null);
     }
   }, [project, tddStartedAt]);
+
+  // Render mermaid diagram when process flow becomes available
+  useEffect(() => {
+    if (!project?.baProcessFlow) return;
+    const container = document.getElementById('ba-process-flow-diagram');
+    if (!container || !window.mermaid) return;
+
+    const diagramId = `mermaid-${Date.now()}`;
+    window.mermaid.render(diagramId, project.baProcessFlow)
+      .then(({ svg }) => {
+        container.innerHTML = svg;
+        setMermaidRendered(true);
+      })
+      .catch(err => {
+        console.error('Mermaid render error:', err);
+        container.innerHTML = `<pre style="font-size:12px;color:#666;white-space:pre-wrap">${project.baProcessFlow}</pre>`;
+        setMermaidRendered(true);
+      });
+  }, [project?.baProcessFlow]);
 
   // Tick every second while TDD is in progress so elapsed time + simulated progress advance
   useEffect(() => {
@@ -632,6 +653,47 @@ export default function ProjectDetail() {
         </div>
       )}
 
+      {/* BA PROCESS FLOW */}
+      {project.baProcessFlow && (
+        <div className="surface mb-lg">
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            borderBottom: '1px solid var(--outline-variant)',
+            paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-lg)'
+          }}>
+            <h2>BA Process Flow</h2>
+            <span style={{
+              fontSize: '11px', fontWeight: '600', padding: '4px 8px',
+              backgroundColor: 'var(--outline-variant)', textTransform: 'uppercase'
+            }}>
+              BA Interpretation
+            </span>
+          </div>
+          <p className="body-sm" style={{ color: 'var(--on-surface-variant)', marginBottom: 'var(--space-md)' }}>
+            The BA Agent's interpretation of the business process described in the PDD.
+          </p>
+          <div
+            id="ba-process-flow-diagram"
+            style={{
+              border: '1px solid var(--outline-variant)',
+              padding: 'var(--space-md)',
+              backgroundColor: 'var(--surface-container-low)',
+              overflowX: 'auto',
+              minHeight: '120px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            {!mermaidRendered && (
+              <p style={{ color: 'var(--on-surface-variant)', fontSize: '13px' }}>
+                Rendering diagram...
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* PENDING CCB APPROVALS */}
       {project.changeRequests && project.changeRequests.some(cr => cr.status === 'pending-ccb') && (
         <div className="surface mb-lg">
@@ -1004,6 +1066,20 @@ export default function ProjectDetail() {
             status: 'approved'
           });
         }
+        if (project.finalPddPath) {
+          derivedArtifacts.push({
+            name: 'Final PDD (BA Synthesised)',
+            type: 'html',
+            phase: 'BA Finalization',
+            size: 'HTML',
+            uploadedDate: project.finalPddGeneratedAt
+              ? new Date(project.finalPddGeneratedAt).toISOString().slice(0, 10)
+              : artifactDate,
+            uploadedBy: 'BA Agent',
+            status: 'approved',
+            isFinalPdd: true
+          });
+        }
         if (phaseStatus('sdd') !== 'pending') {
           derivedArtifacts.push({
             name: 'Solution Design Document (SDD)',
@@ -1073,7 +1149,29 @@ export default function ProjectDetail() {
 
         const allArtifacts = [...(project.artifacts || []), ...derivedArtifacts];
 
-        const handleDownloadArtifact = (artifact) => {
+        const handleDownloadArtifact = async (artifact) => {
+          // Special handling for Final PDD (real file download)
+          if (artifact.isFinalPdd) {
+            setFinalPddDownloading(true);
+            try {
+              const { getFinalPdd } = await import('../api');
+              const blob = await getFinalPdd(id);
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `Final-PDD-${(project.name || 'project').replace(/[^a-z0-9-]/gi, '_')}.html`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              setTimeout(() => URL.revokeObjectURL(url), 0);
+            } catch (err) {
+              alert('Download failed: ' + err.message);
+            } finally {
+              setFinalPddDownloading(false);
+            }
+            return;
+          }
+
           const safeBase = (artifact.name || 'artifact').replace(/[^a-z0-9-_]+/gi, '_');
           const lines = [
             `Project:       ${project.name}`,

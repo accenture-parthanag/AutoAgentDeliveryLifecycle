@@ -192,6 +192,38 @@ router.post('/', async (req, res) => {
 
         if (result) {
           console.log(`✓ BT responses ${stage === 'submit-gap-responses' ? 'submitted' : 'saved as draft'} for project ${projectId}`);
+
+          // Auto-queue pdd_finalize job after BT submits responses (not on draft save)
+          if (stage === 'submit-gap-responses') {
+            try {
+              // Fetch the project to get context info and find original pdd_review job for pddFilePath
+              const updatedProject = await db.collection('projects').findOne(
+                { _id: new ObjectId(projectId) }
+              );
+
+              // Find the original pdd_review job to recover the pddFilePath
+              const pddJob = await db.collection('jobs').findOne(
+                { projectId, stage: 'pdd_review', 'context.pddFilePath': { $exists: true } },
+                { sort: { createdAt: -1 } }
+              );
+              const pddFilePath = pddJob?.context?.pddFilePath || null;
+
+              const finalizeJob = createJob(projectId, 'pdd_finalize', {
+                projectName: updatedProject?.name || '',
+                description: updatedProject?.description || '',
+                scope: updatedProject?.scope || '',
+                objectives: updatedProject?.objectives || '',
+                criteria: updatedProject?.criteria || '',
+                pddFilePath
+              }, 2); // priority 2 = slightly higher than normal
+
+              await db.collection('jobs').insertOne(finalizeJob);
+              console.log(`✓ pdd_finalize job auto-queued for project ${projectId}`);
+            } catch (finalizeErr) {
+              console.error(`✗ Failed to queue pdd_finalize job: ${finalizeErr.message}`);
+              // Non-fatal — BT responses are already saved successfully
+            }
+          }
         } else {
           console.error(`✗ Failed to update project ${projectId} with responses`);
         }
