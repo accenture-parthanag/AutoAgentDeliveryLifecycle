@@ -1,0 +1,1424 @@
+/* =============================================================================
+   STITCH STRATEGIC ENTERPRISE DESIGN SYSTEM
+   A-ADLC Platform - Full Implementation
+   ============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+/* ============================================================
+   CSS CUSTOM PROPERTIES (Design Tokens)
+   ============================================================ */
+
+:root {
+  /* Colors - Material Design 3 Palette */
+  --surface-container: #eeeeee;
+  --outline: #73777d;
+  --on-primary-fixed-variant: #34495b;
+  --surface-bright: #f9f9f9;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f3f3f3;
+  --on-error-container: #93000a;
+  --inverse-surface: #2f3131;
+  --on-secondary-fixed-variant: #464747;
+  --primary-fixed: #cfe5fb;
+  --tertiary-fixed-dim: #90cdff;
+  --error: #ba1a1a;
+  --surface-container-high: #e8e8e8;
+  --primary-container: #061d2d;
+  --on-tertiary-fixed-variant: #004b72;
+  --secondary-container: #e1dfdf;
+  --inverse-primary: #b3c9de;
+  --on-secondary: #ffffff;
+  --on-background: #1a1c1c;
+  --on-primary-fixed: #061d2d;
+  --surface: #f9f9f9;
+  --primary: #000000;
+  --on-error: #ffffff;
+  --surface-container-highest: #e2e2e2;
+  --surface-tint: #4c6173;
+  --error-container: #ffdad6;
+  --background: #f9f9f9;
+  --on-secondary-container: #636262;
+  --tertiary-container: #001e31;
+  --on-surface: #1a1c1c;
+  --primary-fixed-dim: #b3c9de;
+  --on-surface-variant: #43474c;
+  --outline-variant: #c3c7cc;
+  --tertiary: #000000;
+  --secondary-fixed-dim: #c7c6c6;
+  --on-secondary-fixed: #1b1c1c;
+  --on-primary: #ffffff;
+  --secondary-fixed: #e4e2e2;
+  --on-tertiary-fixed: #001e31;
+  --on-tertiary-container: #258bc8;
+  --inverse-on-surface: #f1f1f1;
+  --tertiary-fixed: #cbe6ff;
+  --on-tertiary: #ffffff;
+  --surface-dim: #dadada;
+  --surface-variant: #e2e2e2;
+  --secondary: #5e5e5e;
+  --on-primary-container: #71869a;
+
+  /* Spacing Scale (8px base) */
+  --space-xs: 4px;
+  --space-sm: 12px;
+  --space-base: 8px;
+  --space-md: 24px;
+  --space-lg: 48px;
+  --space-xl: 80px;
+
+  /* Container */
+  --container-max: 1280px;
+  --sidebar-width: 256px;
+}
+
+/* ============================================================
+   RESET
+   ============================================================ */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  background: var(--surface);
+  color: var(--on-surface);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  overflow: hidden;
+}
+
+/* ============================================================
+   MAIN LAYOUT STRUCTURE
+   ============================================================ */
+
+.app-container {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+}
+
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 64px;
+  width: var(--sidebar-width);
+  height: calc(100vh - 64px);
+  background: var(--surface-container-low);
+  border-right: 1px solid var(--outline-variant);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--space-md) 0;
+  z-index: 40;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+}
+
+.main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+  height: 100vh;
+}
+
+@media (max-width: 768px) {
+  .main-wrapper {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--surface-container-lowest);
+  border-bottom: 1px solid var(--outline-variant);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 var(--space-md);
+  z-index: 50;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.header-title {
+  font-family: 'Source Serif 4', serif;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+  color: var(--primary);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+/* ============================================================
+   MAIN CONTENT AREA
+   ============================================================ */
+
+main {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 64px;
+  background: var(--surface);
+}
+
+.container {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: var(--space-lg) var(--space-md);
+  width: 100%;
+}
+
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
+
+h1 {
+  font-family: 'Source Serif 4', serif;
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 56px;
+  letter-spacing: -0.02em;
+  color: var(--primary);
+}
+
+h2 {
+  font-family: 'Source Serif 4', serif;
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 40px;
+  color: var(--primary);
+}
+
+h3 {
+  font-family: 'Source Serif 4', serif;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+  color: var(--primary);
+}
+
+h4 {
+  font-family: 'Source Serif 4', serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 28px;
+  color: var(--primary);
+}
+
+p {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: var(--on-surface);
+}
+
+.body-lg {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 28px;
+  color: var(--on-surface);
+}
+
+.body-md {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: var(--on-surface);
+}
+
+.body-sm {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--on-surface);
+}
+
+.label-bold {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+/* ============================================================
+   SIDEBAR NAVIGATION
+   ============================================================ */
+
+.sidebar-section {
+  padding: 0 var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.sidebar-title {
+  font-family: 'Source Serif 4', serif;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+  color: var(--primary);
+  margin-bottom: var(--space-sm);
+}
+
+.sidebar-subtitle {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--on-surface-variant);
+  margin-top: var(--space-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.sidebar-nav {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-nav li {
+  display: flex;
+}
+
+.sidebar-nav a {
+  color: var(--on-surface-variant);
+  text-decoration: none;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  border-left: 4px solid transparent;
+  transition: all 0.15s ease;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sidebar-nav a:hover {
+  color: var(--on-surface);
+  background: var(--surface-container-high);
+}
+
+.sidebar-nav a.active {
+  background: var(--surface-container-high);
+  color: var(--primary);
+  border-left-color: var(--primary);
+}
+
+/* ============================================================
+   CARDS & CONTAINERS
+   ============================================================ */
+
+.card {
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  padding: var(--space-md);
+  transition: background 0.15s ease;
+}
+
+.card:hover {
+  background: var(--surface-container-low);
+}
+
+.surface {
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  padding: var(--space-md);
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+button {
+  font-family: 'Inter', sans-serif;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border-radius: 0;
+}
+
+.btn {
+  background: transparent;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.btn:hover {
+  background: var(--surface-container-low);
+}
+
+.btn-primary {
+  background: var(--primary-container);
+  border: 1px solid var(--primary-container);
+  color: var(--on-primary);
+}
+
+.btn-primary:hover {
+  background: var(--on-surface-variant);
+  border-color: var(--on-surface-variant);
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-surface-variant);
+}
+
+.btn-icon:hover {
+  background: var(--surface-container-low);
+  border-radius: 50%;
+}
+
+/* ============================================================
+   INPUTS
+   ============================================================ */
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  background: var(--surface-container-lowest);
+  border: 1px solid #707070;
+  padding: 8px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--on-surface);
+  border-radius: 0;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary-container);
+}
+
+/* ============================================================
+   TABLES
+   ============================================================ */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background: var(--surface-container-high);
+  color: var(--primary);
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--outline-variant);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--on-surface);
+}
+
+tbody tr:hover {
+  background: var(--surface-container-low);
+}
+
+/* ============================================================
+   GRIDS
+   ============================================================ */
+
+.grid {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.grid-1 {
+  grid-template-columns: 1fr;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.grid-12 {
+  grid-template-columns: repeat(12, 1fr);
+}
+
+.col-span-1 { grid-column: span 1; }
+.col-span-2 { grid-column: span 2; }
+.col-span-3 { grid-column: span 3; }
+.col-span-4 { grid-column: span 4; }
+.col-span-6 { grid-column: span 6; }
+.col-span-8 { grid-column: span 8; }
+.col-span-12 { grid-column: span 12; }
+
+@media (max-width: 1024px) {
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .col-span-4 {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-2, .grid-3, .grid-4 {
+    grid-template-columns: 1fr;
+  }
+  .col-span-4, .col-span-6, .col-span-8 {
+    grid-column: span 1;
+  }
+}
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: var(--surface-container-low);
+  color: var(--on-surface);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0;
+}
+
+.badge.success {
+  background: #d4edda;
+  color: #155724;
+  border-color: #c3e6cb;
+}
+
+.badge.warning {
+  background: #fff3cd;
+  color: #856404;
+  border-color: #ffeaa7;
+}
+
+.badge.error {
+  background: #f8d7da;
+  color: #721c24;
+  border-color: #f5c6cb;
+}
+
+/* ============================================================
+   MATERIAL SYMBOLS ICON
+   ============================================================ */
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: 400;
+  font-style: normal;
+  font-size: 24px;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+
+.mt-md { margin-top: var(--space-md); }
+.mb-md { margin-bottom: var(--space-md); }
+.mb-lg { margin-bottom: var(--space-lg); }
+.py-md { padding: var(--space-md) 0; }
+.py-lg { padding: var(--space-lg) 0; }
+.px-md { padding: 0 var(--space-md); }
+
+.border-b {
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.pb-md {
+  padding-bottom: var(--space-md);
+}
+
+.pt-md {
+  padding-top: var(--space-md);
+}
+
+.gap-md {
+  gap: var(--space-md);
+}
+
+.gap-lg {
+  gap: var(--space-lg);
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+footer {
+  border-top: 1px solid var(--outline-variant);
+  padding: var(--space-md);
+  color: var(--on-surface-variant);
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+  background: var(--surface-container-lowest);
+}
+
+/* ============================================================
+   SCROLLBAR STYLING
+   ============================================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--outline-variant);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--outline);
+}
+
+/* ============================================================
+   STEPPER COMPONENT
+   ============================================================ */
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: var(--space-lg);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.step-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 80px;
+}
+
+.step-circle {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--outline-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-container-lowest);
+  color: var(--outline);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.step-circle.active {
+  border-color: var(--primary-container);
+  color: var(--primary-container);
+  background: var(--primary-fixed);
+}
+
+.step-circle.completed {
+  border-color: var(--primary-container);
+  background: var(--primary-container);
+  color: white;
+}
+
+.step-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--on-surface-variant);
+  text-align: center;
+  max-width: 70px;
+}
+
+.step-label.active {
+  color: var(--primary-container);
+}
+
+.step-connector {
+  flex: 1;
+  height: 1px;
+  background: var(--outline-variant);
+  margin: 0 4px;
+  margin-bottom: 20px;
+  align-self: flex-start;
+}
+
+.step-connector.completed {
+  background: var(--primary-container);
+}
+
+/* ============================================================
+   FORM GROUPS
+   ============================================================ */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.form-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--on-surface-variant);
+}
+
+.form-hint {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  margin-top: 2px;
+}
+
+/* ============================================================
+   DIFF VIEW (Version Comparison)
+   ============================================================ */
+
+.diff-view {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.7;
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  padding: var(--space-md);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.diff-add {
+  background: #d4edda;
+  color: #155724;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.diff-del {
+  background: #f8d7da;
+  color: #721c24;
+  text-decoration: line-through;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+/* ============================================================
+   VERSION HISTORY & CARDS
+   ============================================================ */
+
+.version-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.version-card {
+  border: 1px solid var(--outline-variant);
+  padding: var(--space-md);
+  position: relative;
+  background: var(--surface-container-lowest);
+}
+
+.version-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--outline-variant);
+}
+
+.version-card.current::before {
+  background: var(--primary-container);
+}
+
+.version-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+/* ============================================================
+   GAP CARDS
+   ============================================================ */
+
+.gap-card {
+  border: 1px solid var(--outline-variant);
+  border-left: 4px solid var(--primary-container);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  background: var(--surface-container-lowest);
+}
+
+.gap-card.answered {
+  border-left-color: #10b981;
+}
+
+.gap-response-area {
+  margin-top: var(--space-sm);
+  border-top: 1px solid var(--outline-variant);
+  padding-top: var(--space-sm);
+}
+
+.gap-badges {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+/* ============================================================
+   CALLOUT / INFO BOX
+   ============================================================ */
+
+.callout {
+  border: 1px solid var(--outline-variant);
+  border-left: 4px solid var(--primary-container);
+  padding: var(--space-md);
+  background: var(--surface-container-low);
+  margin-bottom: var(--space-md);
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+}
+
+.callout-icon {
+  color: var(--primary-container);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.callout-content {
+  flex: 1;
+}
+
+/* ============================================================
+   PROGRESS INDICATORS
+   ============================================================ */
+
+.progress-text {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  font-weight: 600;
+}
+
+/* ============================================================
+   FILE UPLOAD AREA
+   ============================================================ */
+
+.file-upload-zone {
+  border: 2px dashed var(--outline-variant);
+  padding: var(--space-lg);
+  text-align: center;
+  background: var(--surface-container-lowest);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.file-upload-zone:hover {
+  border-color: var(--primary-container);
+  background: var(--surface-container-low);
+}
+
+.file-upload-zone.drag-over {
+  border-color: var(--primary-container);
+  background: var(--primary-fixed);
+}
+
+.file-item {
+  border: 1px solid var(--outline-variant);
+  border-left: 4px solid #10b981;
+  padding: var(--space-md);
+  background: var(--surface-container-lowest);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ============================================================
+   PDD WORKFLOW - STEPPER
+   ============================================================ */
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: var(--space-lg);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.step-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 80px;
+}
+
+.step-circle {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--outline-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-container-lowest);
+  color: var(--outline);
+  font-weight: 600;
+  border-radius: 50%;
+}
+
+.step-circle.active {
+  border-color: var(--primary-container);
+  color: var(--primary-container);
+  background: var(--primary-fixed);
+}
+
+.step-circle.completed {
+  border-color: var(--primary-container);
+  background: var(--primary-container);
+  color: white;
+}
+
+.step-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--on-surface-variant);
+  text-align: center;
+}
+
+.step-label.active {
+  color: var(--primary-container);
+}
+
+.step-connector {
+  flex: 1;
+  height: 1px;
+  background: var(--outline-variant);
+  margin: 0 4px;
+  margin-bottom: 20px;
+}
+
+.step-connector.completed {
+  background: var(--primary-container);
+}
+
+/* ============================================================
+   PDD WORKFLOW - FORM GROUPS
+   ============================================================ */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.form-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--on-surface-variant);
+}
+
+.form-hint {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  margin-top: 2px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  padding: var(--space-sm);
+  border: 1px solid var(--outline-variant);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--on-surface);
+  background: var(--surface-container-lowest);
+  line-height: 1.5;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary-container);
+  box-shadow: 0 0 0 3px var(--primary-fixed);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* ============================================================
+   PDD WORKFLOW - DIFF VIEW
+   ============================================================ */
+
+.diff-view {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  padding: var(--space-md);
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow-y: auto;
+  word-break: break-word;
+}
+
+.diff-add {
+  background: #d4edda;
+  color: #155724;
+}
+
+.diff-del {
+  background: #f8d7da;
+  color: #721c24;
+  text-decoration: line-through;
+}
+
+/* ============================================================
+   PDD WORKFLOW - VERSION HISTORY
+   ============================================================ */
+
+.version-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.version-card {
+  border: 1px solid var(--outline-variant);
+  padding: var(--space-md);
+  position: relative;
+}
+
+.version-card::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--outline-variant);
+}
+
+.version-card.current::before {
+  background: var(--primary-container);
+}
+
+.version-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+/* ============================================================
+   PDD WORKFLOW - GAP CARDS
+   ============================================================ */
+
+.gap-card {
+  border: 1px solid var(--outline-variant);
+  border-left: 4px solid var(--primary-container);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.gap-card.answered {
+  border-left-color: #10b981;
+}
+
+.gap-response-area {
+  margin-top: var(--space-sm);
+  border-top: 1px solid var(--outline-variant);
+  padding-top: var(--space-sm);
+}
+
+.gap-header {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+  margin-bottom: var(--space-md);
+}
+
+.gap-number {
+  min-width: 32px;
+  padding: 4px 8px;
+  background: var(--primary-container);
+  color: white;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.gap-badges {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.gap-badge {
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 2px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.gap-badge.business-logic {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.gap-badge.data-validation {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.gap-badge.process-governance {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.gap-badge.integration {
+  background: #e0f2f1;
+  color: #00796b;
+}
+
+.gap-badge.risk-management {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.gap-complexity {
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 2px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.gap-complexity.high {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.gap-complexity.medium {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.gap-complexity.low {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.gap-question {
+  font-size: 14px;
+  margin-bottom: var(--space-md);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   PDD WORKFLOW - CALLOUT
+   ============================================================ */
+
+.callout {
+  border: 1px solid var(--outline-variant);
+  border-left: 4px solid var(--primary-container);
+  padding: var(--space-md);
+  background: var(--surface-container-low);
+  margin-bottom: var(--space-md);
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+}
+
+.callout-icon {
+  color: var(--primary-container);
+  flex-shrink: 0;
+  font-size: 20px;
+}
+
+.callout-content {
+  flex: 1;
+}
+
+.callout-title {
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+  color: var(--on-surface);
+}
+
+.callout-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--on-surface-variant);
+}
+
+/* ============================================================
+   RESPONSIVE TIMELINE GRID
+   ============================================================ */
+
+.timeline-grid-row {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: var(--space-lg) !important;
+  position: relative !important;
+  padding-top: 60px !important;
+}
+
+/* Large screens: 1280px and above - keep 4 columns */
+@media (min-width: 1281px) {
+  .timeline-grid-row {
+    grid-template-columns: repeat(4, 1fr) !important;
+    padding-top: 60px !important;
+  }
+}
+
+/* Tablets: 1024px to 1280px - 2 columns with adjusted spacing */
+@media (max-width: 1280px) and (min-width: 1025px) {
+  .timeline-grid-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-lg) !important;
+    padding-top: 40px !important;
+  }
+
+  .timeline-grid-row > div [style*="position: absolute"] {
+    display: none !important;
+  }
+}
+
+/* Small tablets and landscape phones: 768px to 1024px */
+@media (max-width: 1024px) {
+  .timeline-grid-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-lg) !important;
+    padding-top: 40px !important;
+  }
+
+  .timeline-grid-row > div [style*="position: absolute"] {
+    display: none !important;
+  }
+
+  .timeline-grid-row p[style*="fontSize: 11px"] {
+    font-size: 10px !important;
+  }
+}
+
+/* Mobile: 768px and below - single column */
+@media (max-width: 768px) {
+  .timeline-grid-row {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-lg) !important;
+    padding-top: 20px !important;
+  }
+
+  .timeline-grid-row > div [style*="position: absolute"] {
+    display: none !important;
+  }
+
+  .timeline-grid-row p[style*="fontSize: 11px"] {
+    font-size: 9px !important;
+  }
+
+  .timeline-grid-row div[style*="width: 56px"] {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .timeline-grid-row div[style*="fontSize: 20px"] {
+    font-size: 16px !important;
+  }
+}
+
+@keyframes phase-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes phase-bar-shimmer {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.phase-progress-card {
+  border: 1px solid var(--primary-container);
+  border-left: 3px solid var(--primary-container);
+  padding: var(--space-md);
+  background-color: rgba(0, 102, 204, 0.04);
+}
+
+.phase-progress-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.phase-progress-spinner {
+  display: inline-block;
+  font-size: 22px;
+  color: var(--primary-container);
+  animation: phase-spin 1.4s linear infinite;
+}
+
+.phase-progress-bar {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  background-color: var(--outline-variant);
+  overflow: hidden;
+  margin-top: var(--space-sm);
+}
+
+.phase-progress-bar-fill {
+  height: 100%;
+  background-image: linear-gradient(
+    90deg,
+    var(--primary-container) 0%,
+    rgba(255,255,255,0.5) 50%,
+    var(--primary-container) 100%
+  );
+  background-size: 200% 100%;
+  animation: phase-bar-shimmer 1.6s linear infinite;
+  transition: width 0.6s ease;
+}
+
+.phase-progress-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: var(--space-md);
+}
+
+.phase-progress-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--on-surface-variant);
+}
+
+.phase-progress-step.active {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.phase-progress-step .material-symbols-outlined {
+  font-size: 16px;
+}
