@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
-export default function RichTextEditor({ value, onChange, placeholder, readOnly = false }) {
-  const modules = {
+const RichTextEditor = React.memo(({ value, onChange, placeholder, readOnly = false }) => {
+  const modules = useMemo(() => ({
     toolbar: readOnly ? false : [
       [{ header: [2, 3, false] }],
       ['bold', 'italic', 'underline', 'strike'],
@@ -12,15 +12,19 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
       ['link'],
       ['clean']
     ]
-  };
+  }), [readOnly]);
 
-  const formats = [
+  const formats = useMemo(() => [
     'header',
     'bold', 'italic', 'underline', 'strike',
     'blockquote', 'code-block',
     'list', 'bullet',
     'link'
-  ];
+  ], []);
+
+  const handleChange = useCallback((content) => {
+    onChange(content);
+  }, [onChange]);
 
   return (
     <div style={{
@@ -32,7 +36,7 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
       <ReactQuill
         theme={readOnly ? 'bubble' : 'snow'}
         value={value || ''}
-        onChange={onChange}
+        onChange={handleChange}
         modules={modules}
         formats={formats}
         placeholder={placeholder}
@@ -41,4 +45,7 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
       />
     </div>
   );
-}
+});
+
+RichTextEditor.displayName = 'RichTextEditor';
+export default RichTextEditor;
