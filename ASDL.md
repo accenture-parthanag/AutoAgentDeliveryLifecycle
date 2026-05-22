@@ -4,11 +4,11 @@ I need a multi page web solution design which i would use to create the full sol
 
 
 
-This document outlines a modernized **Auto Agentic Solution Development with Human in Lead (AASDI)**. In this framework, traditional human roles are replaced by specialized AI Agents capable of reasoning, document generation, and technical validation, while maintaining a crucial interface with the Business Transformation (BT) team.
+This document outlines a modernized **Agentic Solution Development with Human in Lead (ASDL)**. In this framework, traditional human roles are replaced by specialized AI Agents capable of reasoning, document generation, and technical validation, while maintaining a crucial interface with the Business Transformation (BT) team.
 
 ---
 
-# 🤖 Auto Agentic Solution Development with Human in Lead (AASDI)
+# 🤖 Agentic Solution Development with Human in Lead (ASDL)
 
 ## Table of Contents
 
@@ -28,7 +28,7 @@ This document outlines a modernized **Auto Agentic Solution Development with Hum
 
 ## 1. Executive Summary
 
-The AASDI transitions automation from a human-heavy delivery model to an **AI-Orchestrated** model. By utilizing specialized LLM-based agents, we reduce the development lead time by up to 70%, ensure 24/7 productivity, and eliminate manual handoff errors.
+The ASDL transitions automation from a human-heavy delivery model to an **AI-Orchestrated** model. By utilizing specialized LLM-based agents, we reduce the development lead time by up to 70%, ensure 24/7 productivity, and eliminate manual handoff errors.
 
 ---
 

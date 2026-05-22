@@ -1,7 +1,7 @@
-# AASDI Project: Global README & Documentation
+# ASDL Project: Global README & Documentation
 
 ## Project Overview
-The Auto Agentic Solution Development with Human in Lead (AASDI) is a high-fidelity web application designed to orchestrate AI Agents through the automation delivery process. This project follows McKinsey's design principles, emphasizing strategic clarity, professional minimalism, and authoritative typography.
+The Agentic Solution Development with Human in Lead (ASDL) is a high-fidelity web application designed to orchestrate AI Agents through the automation delivery process. This project follows McKinsey's design principles, emphasizing strategic clarity, professional minimalism, and authoritative typography.
 
 ## Tech Stack
 - **Frontend:** React (Vite/CRA)

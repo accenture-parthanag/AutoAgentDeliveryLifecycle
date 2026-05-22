@@ -1,8 +1,8 @@
-# AASDI Platform — Development Guide for Claude Code
+# ASDL Platform — Development Guide for Claude Code
 
 ## Project Overview
 
-The AASDI (Auto Agentic Solution Development with Human in Lead) Platform is a React-based multi-page web application implementing the Auto Agentic Solution Development with Human in Lead framework. It provides a user interface for orchestrating AI agents through five specialized roles: Business Analyst, Architect, Tech Lead, Developer, and QA Agent.
+The ASDL (Agentic Solution Development with Human in Lead) Platform is a React-based multi-page web application implementing the Agentic Solution Development with Human in Lead framework. It provides a user interface for orchestrating AI agents through five specialized roles: Business Analyst, Architect, Tech Lead, Developer, and QA Agent.
 
 ### Tech Stack
 - **Frontend**: React 18, React Router 6
@@ -13,7 +13,7 @@ The AASDI (Auto Agentic Solution Development with Human in Lead) Platform is a R
 ### Key Files
 - `src/index.css` — All styling using design tokens
 - `src/App.jsx` — Router and main navigation
-- `src/pages/` — Seven page components for the AASDI workflow
+- `src/pages/` — Seven page components for the ASDL workflow
 - `public/index.html` — HTML entry point
 - `package.json` — Dependencies and scripts
 
@@ -80,7 +80,7 @@ export default function NewPage() {
         {/* Content */}
       </section>
 
-      <footer>Page name · Phase · AASDI Platform</footer>
+      <footer>Page name · Phase · ASDL Platform</footer>
     </div>
   );
 }

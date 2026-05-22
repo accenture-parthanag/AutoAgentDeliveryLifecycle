@@ -1,6 +1,6 @@
-# AASDI React Implementation Guide
+# ASDL React Implementation Guide
 
-This document provides a production-ready React implementation framework for the Auto Agentic Solution Development with Human in Lead (AASDI) project, adhering to the McKinsey-inspired design system tokens.
+This document provides a production-ready React implementation framework for the Agentic Solution Development with Human in Lead (ASDL) project, adhering to the McKinsey-inspired design system tokens.
 
 ## 1. Project Structure
 
@@ -55,7 +55,7 @@ import { TopNavBar, SideNavBar, Footer } from './components';
 const AppLayout = ({ children }) => {
   return (
     <div className="min-h-screen bg-surface font-sans text-primary">
-      <TopNavBar productName="AASDI Agentic Lifecycle" />
+      <TopNavBar productName="ASDL Agentic Lifecycle" />
       <div className="flex pt-16">
         <SideNavBar activeTab="Executive Overview" />
         <main className="flex-1 p-8 ml-64 mb-16">
