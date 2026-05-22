@@ -1464,3 +1464,88 @@ footer {
   white-space: nowrap;
   text-align: right;
 }
+
+/* ============================================================
+   RICH TEXT EDITOR (QUILL) STYLES
+   ============================================================ */
+
+.ql-container {
+  font-family: 'Geist', sans-serif !important;
+  font-size: 14px !important;
+  color: var(--on-surface) !important;
+}
+
+.ql-editor {
+  min-height: 200px !important;
+  padding: var(--space-md) !important;
+  background-color: var(--surface) !important;
+  color: var(--on-surface) !important;
+}
+
+.ql-editor.ql-blank::before {
+  color: var(--on-surface-variant) !important;
+  font-style: normal !important;
+}
+
+.ql-toolbar {
+  border: 1px solid var(--outline-variant) !important;
+  border-radius: 0 !important;
+  background-color: var(--surface-container-low) !important;
+}
+
+.ql-toolbar.ql-snow {
+  padding: 8px !important;
+}
+
+.ql-toolbar.ql-snow .ql-stroke {
+  stroke: var(--on-surface-variant) !important;
+}
+
+.ql-toolbar.ql-snow .ql-fill {
+  fill: var(--on-surface-variant) !important;
+}
+
+.ql-toolbar.ql-snow .ql-picker-label {
+  color: var(--on-surface-variant) !important;
+}
+
+.ql-toolbar.ql-snow button:hover,
+.ql-toolbar.ql-snow button:focus,
+.ql-toolbar.ql-snow button.ql-active,
+.ql-toolbar.ql-snow .ql-picker-label:hover,
+.ql-toolbar.ql-snow .ql-picker-item:hover,
+.ql-toolbar.ql-snow .ql-picker-item.ql-selected {
+  color: var(--accent) !important;
+}
+
+.ql-toolbar.ql-snow button:hover .ql-stroke,
+.ql-toolbar.ql-snow button:focus .ql-stroke,
+.ql-toolbar.ql-snow button.ql-active .ql-stroke,
+.ql-toolbar.ql-snow .ql-picker-label:hover .ql-stroke,
+.ql-toolbar.ql-snow .ql-picker-item:hover .ql-stroke,
+.ql-toolbar.ql-snow .ql-picker-item.ql-selected .ql-stroke {
+  stroke: var(--accent) !important;
+}
+
+.ql-toolbar.ql-snow button:hover .ql-fill,
+.ql-toolbar.ql-snow button:focus .ql-fill,
+.ql-toolbar.ql-snow button.ql-active .ql-fill,
+.ql-toolbar.ql-snow .ql-picker-label:hover .ql-fill,
+.ql-toolbar.ql-snow .ql-picker-item:hover .ql-fill,
+.ql-toolbar.ql-snow .ql-picker-item.ql-selected .ql-fill {
+  fill: var(--accent) !important;
+}
+
+.ql-container.ql-snow {
+  border: 1px solid var(--outline-variant) !important;
+  border-top: none !important;
+  border-radius: 0 !important;
+}
+
+.ql-editor strong {
+  font-weight: 600;
+}
+
+.ql-editor.ql-bubble {
+  padding: var(--space-md) !important;
+}

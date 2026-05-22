@@ -29,7 +29,9 @@
       "PowerShell(Get-Process *)",
       "PowerShell(& .\\\\start-all.ps1)",
       "Bash(mongosh *)",
-      "PowerShell(Start-Sleep -Seconds 3; $response = Invoke-WebRequest -Uri \"http://localhost:5000/api/projects\" -UseBasicParsing -ErrorAction SilentlyContinue; if \\($response.StatusCode -eq 200\\) { $projects = $response.Content | ConvertFrom-Json; Write-Host \"Found $\\($projects.Count\\) projects\" -ForegroundColor Green; if \\($projects.Count -gt 0\\) { Write-Host \"First project:\" -ForegroundColor Cyan; $projects[0] | ConvertTo-Json | Write-Host } } else { Write-Host \"API not ready yet\" })"
+      "PowerShell(Start-Sleep -Seconds 3; $response = Invoke-WebRequest -Uri \"http://localhost:5000/api/projects\" -UseBasicParsing -ErrorAction SilentlyContinue; if \\($response.StatusCode -eq 200\\) { $projects = $response.Content | ConvertFrom-Json; Write-Host \"Found $\\($projects.Count\\) projects\" -ForegroundColor Green; if \\($projects.Count -gt 0\\) { Write-Host \"First project:\" -ForegroundColor Cyan; $projects[0] | ConvertTo-Json | Write-Host } } else { Write-Host \"API not ready yet\" })",
+      "Bash(Select-Object ProcessName, Handles)",
+      "Bash(start http://localhost:3000/project/6a101a8413e9491eb015771a)"
     ]
   }
 }

@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { getProject, submitJob } from '../api';
+import RichTextEditor from '../components/RichTextEditor';
 
 export default function ProjectDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [showBugUpload, setShowBugUpload] = useState(false);
+  const [bugTitle, setBugTitle] = useState('');
+  const [bugDescription, setBugDescription] = useState('');
   const [bugs, setBugs] = useState([]);
   const [showGlossary, setShowGlossary] = useState(false);
   const [project, setProject] = useState(null);
@@ -1758,12 +1761,14 @@ export default function ProjectDetail() {
                   <input
                     type="text"
                     placeholder="Bug Title"
+                    value={bugTitle}
+                    onChange={(e) => setBugTitle(e.target.value)}
                     style={{ padding: '8px 12px', border: '1px solid var(--outline-variant)', fontFamily: 'Inter' }}
                   />
-                  <textarea
+                  <RichTextEditor
+                    value={bugDescription}
+                    onChange={setBugDescription}
                     placeholder="Bug Description (what was the expected behavior vs actual)"
-                    rows="4"
-                    style={{ padding: '8px 12px', border: '1px solid var(--outline-variant)', fontFamily: 'Inter', resize: 'vertical' }}
                   />
                   <select style={{ padding: '8px 12px', border: '1px solid var(--outline-variant)', fontFamily: 'Inter' }}>
                     <option>Select Severity...</option>

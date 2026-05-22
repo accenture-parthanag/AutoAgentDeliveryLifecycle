@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getProject, submitJob } from '../api';
+import RichTextEditor from '../components/RichTextEditor';
 
 function getTemplateResponse(gap) {
   const templates = {
@@ -202,11 +203,10 @@ export default function GapResponse() {
               <div style={{ fontSize: '12px', color: 'var(--on-surface-variant)', marginBottom: '8px' }}>
                 Template pre-filled below. Edit to provide your specific response.
               </div>
-              <textarea
+              <RichTextEditor
                 value={responses[gap.id] || ''}
-                onChange={(e) => handleResponseChange(gap.id, e.target.value)}
-                rows="6"
-                style={{ fontFamily: 'Geist, sans-serif', fontSize: '14px' }}
+                onChange={(value) => handleResponseChange(gap.id, value)}
+                placeholder="Enter your response here..."
               />
             </div>
           </div>
@@ -271,11 +271,10 @@ export default function GapResponse() {
               {processFlowApproval === 'approve-with-comments' && (
                 <div className="form-group">
                   <label className="form-label">Your Comments</label>
-                  <textarea
+                  <RichTextEditor
                     value={processFlowComments}
-                    onChange={(e) => setProcessFlowComments(e.target.value)}
+                    onChange={setProcessFlowComments}
                     placeholder="Provide any feedback on the Process Flow Diagram for the BA Agent to incorporate..."
-                    rows="3"
                   />
                 </div>
               )}

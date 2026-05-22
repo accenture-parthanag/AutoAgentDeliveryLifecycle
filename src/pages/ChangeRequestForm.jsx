@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getProject, submitJob, getProjects } from '../api';
+import RichTextEditor from '../components/RichTextEditor';
 
 export default function ChangeRequestForm() {
   const { projectId } = useParams();
@@ -192,11 +193,10 @@ export default function ChangeRequestForm() {
 
               <div className="form-group">
                 <label className="form-label">Change Notes & Details</label>
-                <textarea
+                <RichTextEditor
                   value={changeNotes}
-                  onChange={(e) => setChangeNotes(e.target.value)}
+                  onChange={setChangeNotes}
                   placeholder="Describe what changed in this PDD version..."
-                  rows="4"
                 />
               </div>
             </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getProject, submitJob } from '../api';
+import RichTextEditor from '../components/RichTextEditor';
 
 export default function PDDApproval() {
   const { projectId } = useParams();
@@ -251,11 +252,10 @@ export default function PDDApproval() {
 
             <div className="form-group">
               <label className="form-label">Version Notes</label>
-              <textarea
+              <RichTextEditor
                 value={newPddNotes}
-                onChange={(e) => setNewPddNotes(e.target.value)}
+                onChange={setNewPddNotes}
                 placeholder="Brief summary of changes in this new version..."
-                rows="3"
               />
             </div>
 
@@ -321,11 +321,10 @@ export default function PDDApproval() {
 
               <div className="form-group">
                 <label className="form-label">Approval Notes (Optional)</label>
-                <textarea
+                <RichTextEditor
                   value={approvalNotes}
-                  onChange={(e) => setApprovalNotes(e.target.value)}
+                  onChange={setApprovalNotes}
                   placeholder="Add any final notes or comments about this PDD approval..."
-                  rows="3"
                 />
               </div>
 
