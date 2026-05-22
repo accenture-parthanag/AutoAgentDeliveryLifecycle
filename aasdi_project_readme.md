@@ -1,7 +1,7 @@
-# A-ADLC Project: Global README & Documentation
+# AASDI Project: Global README & Documentation
 
 ## Project Overview
-The Agentic Automation Development Lifecycle (A-ADLC) is a high-fidelity web application designed to orchestrate AI Agents through the automation delivery process. This project follows McKinsey's design principles, emphasizing strategic clarity, professional minimalism, and authoritative typography.
+The Auto Agentic Solution Development with Human in Lead (AASDI) is a high-fidelity web application designed to orchestrate AI Agents through the automation delivery process. This project follows McKinsey's design principles, emphasizing strategic clarity, professional minimalism, and authoritative typography.
 
 ## Tech Stack
 - **Frontend:** React (Vite/CRA)

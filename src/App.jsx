@@ -71,10 +71,10 @@ function AppContent() {
       <aside className="sidebar">
         <div style={{ overflowY: 'auto', flex: 1 }}>
           <div className="sidebar-section">
-            <div className="sidebar-title">A-ADLC Hub</div>
+            <div className="sidebar-title">AASDI Hub</div>
             <div className="sidebar-subtitle">
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--primary-container)', display: 'inline-block' }}></span>
-              v1.2 Agentic Lifecycle
+              v1.2 Auto Agentic Development
             </div>
           </div>
 
@@ -318,7 +318,7 @@ function AppContent() {
             <button className="btn-icon" style={{ display: 'none' }} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
               <span className="material-symbols-outlined">menu</span>
             </button>
-            <div className="header-title">A-ADLC Agentic Lifecycle</div>
+            <div className="header-title">AASDI Agentic Lifecycle</div>
           </div>
           <div className="header-right">
             <button className="btn-icon">

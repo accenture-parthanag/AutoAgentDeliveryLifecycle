@@ -1,6 +1,6 @@
-# A-ADLC React Package: Full Implementation
+# AASDI React Package: Full Implementation
 
-This document provides the complete source code for the A-ADLC (Agentic Automation Development Lifecycle) web application. The solution is built with **React**, **Tailwind CSS**, and uses **Lucide-React** for iconography, following the McKinsey-inspired design system.
+This document provides the complete source code for the AASDI (Auto Agentic Solution Development with Human in Lead) web application. The solution is built with **React**, **Tailwind CSS**, and uses **Lucide-React** for iconography, following the McKinsey-inspired design system.
 
 ## 1. Project Setup
 
@@ -35,7 +35,7 @@ import { Bell, User, Settings, LayoutDashboard, ShieldCheck, Milestone, Cpu, Act
 
 const TopNavBar = () => (
   <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-outline flex items-center justify-between px-8 z-50">
-    <div className="text-xl font-bold text-primary">A-ADLC Agentic Lifecycle</div>
+    <div className="text-xl font-bold text-primary">AASDI Agentic Lifecycle</div>
     <div className="flex items-center gap-6 text-on-surface-variant">
       <Bell size={20} className="cursor-pointer hover:text-primary transition-colors" />
       <User size={20} className="cursor-pointer hover:text-primary transition-colors" />
@@ -57,7 +57,7 @@ const SideNavBar = ({ activeTab }) => {
     <nav className="fixed left-0 top-16 w-64 h-[calc(100vh-64px)] bg-surface-container-low border-r border-outline flex flex-col justify-between py-8">
       <div>
         <div className="px-6 mb-8">
-          <h2 className="text-xl font-bold text-primary">A-ADLC Hub</h2>
+          <h2 className="text-xl font-bold text-primary">AASDI Hub</h2>
           <p className="text-xs text-on-surface-variant flex items-center gap-2 mt-1">
             <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
             v1.2 Agent Status: Active
@@ -107,7 +107,7 @@ const AppLayout = ({ children, activeTab }) => {
         </main>
       </div>
       <footer className="fixed bottom-0 left-64 right-0 h-12 bg-white border-t border-outline flex items-center justify-between px-8 text-[10px] text-on-surface-variant z-40">
-        <div>© 2024 A-ADLC Framework | Corporate Governance & Strategic Excellence</div>
+        <div>© 2024 AASDI Framework | Corporate Governance & Strategic Excellence</div>
         <div className="flex gap-4">
           <span className="hover:underline cursor-pointer">Privacy Policy</span>
           <span className="hover:underline cursor-pointer">Terms of Service</span>

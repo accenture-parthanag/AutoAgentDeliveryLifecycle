@@ -54,7 +54,7 @@ export default function Dashboard() {
           <div>
             <h1>Projects</h1>
             <p className="body-lg mt-md" style={{ color: 'var(--on-surface-variant)', maxWidth: '600px' }}>
-              View all automation projects and their progress through the A-ADLC lifecycle. Click on any project to see detailed phase progress.
+              View all automation projects and their progress through the AASDI lifecycle. Click on any project to see detailed phase progress.
             </p>
           </div>
           <button
@@ -220,7 +220,7 @@ export default function Dashboard() {
       </div>
 
       <footer>
-        Projects · A-ADLC Platform
+        Projects · AASDI Platform
       </footer>
     </div>
   );

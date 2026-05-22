@@ -1,12 +1,12 @@
 @echo off
-REM A-ADLC Platform - Multi-Process Launcher (Batch Wrapper)
+REM AASDI Platform - Multi-Process Launcher (Batch Wrapper)
 REM Cleans up existing processes and starts all services
 
 setlocal enabledelayedexpansion
 
 echo.
 echo ================================================================
-echo   A-ADLC Platform - Starting All Processes
+echo   AASDI Platform - Starting All Processes
 echo ================================================================
 echo.
 

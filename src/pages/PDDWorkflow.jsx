@@ -576,7 +576,7 @@ export default function PDDWorkflow() {
       )}
 
       <footer style={{ marginTop: 'var(--space-xl)', paddingTop: 'var(--space-lg)', borderTop: '1px solid var(--outline-variant)' }}>
-        PDD Workflow · A-ADLC Platform
+        PDD Workflow · AASDI Platform
       </footer>
     </div>
   );

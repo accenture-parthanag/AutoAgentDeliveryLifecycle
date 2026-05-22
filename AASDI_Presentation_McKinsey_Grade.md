@@ -1,4 +1,4 @@
-# A-ADLC Platform: Agentic Automation Development Lifecycle
+# AASDI Platform: Auto Agentic Solution Development with Human in Lead
 ## McKinsey-Grade Executive Presentation
 
 ---
@@ -77,7 +77,7 @@
 
 The traditional development lifecycle—PDD analysis → Design → Development → Testing—consumes **30–45 days** and relies on sequential human effort. At Accenture's scale, we execute **500+ solutions annually**, costing **$425M+** in delivery resource hours, with **2–3% post-launch defects** and **40% rework cycles**.
 
-**A-ADLC Platform** reimagines this as an **agentic lifecycle**, where AI agents (Business Analyst, Architect, Tech Lead, Developer, QA) autonomously drive analysis, design, code generation, and test creation—while humans guide strategy, review quality, and ensure governance. This unlocks:
+**AASDI Platform** reimagines this as an **agentic lifecycle**, where AI agents (Business Analyst, Architect, Tech Lead, Developer, QA) autonomously drive analysis, design, code generation, and test creation—while humans guide strategy, review quality, and ensure governance. This unlocks:
 
 - **60% faster delivery** (14 days vs. 45 days)
 - **40% cost reduction** (~$600K per solution vs. $1M+)
@@ -87,7 +87,7 @@ The traditional development lifecycle—PDD analysis → Design → Development 
 ---
 
 ### The Vision
-**By 2027, A-ADLC becomes the system-of-record for all Accenture solution delivery, eliminating manual bottlenecks and creating a "human-agent partnership" model that sets industry benchmark for delivery excellence.**
+**By 2027, AASDI becomes the system-of-record for all Accenture solution delivery, eliminating manual bottlenecks and creating a "human-agent partnership" model that sets industry benchmark for delivery excellence.**
 
 ---
 
@@ -144,7 +144,7 @@ Each role waits for the prior role to finish. Parallelization is impossible with
 
 ## SECTION 3: SOLUTION ARCHITECTURE
 
-### 3.1 The A-ADLC Five-Agent Model
+### 3.1 The AASDI Five-Agent Model
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -365,7 +365,7 @@ This reduces **context loss** at handoffs (major source of rework today).
 
 ### 5.1 Delivery Velocity Impact
 
-#### **Before A-ADLC** (Industry Norm)
+#### **Before AASDI** (Industry Norm)
 | Phase | Owner | Duration | Effort (hrs) |
 |-------|-------|----------|------|
 | PDD Analysis | BA | 8 hrs | 8 |
@@ -376,7 +376,7 @@ This reduces **context loss** at handoffs (major source of rework today).
 | QA & Testing | QA Lead | 2 days | 16 |
 | **TOTAL** | — | **45 days** | **120 hrs** |
 
-#### **After A-ADLC**
+#### **After AASDI**
 | Phase | Owner | Duration | Effort (hrs) |
 |-------|-------|----------|------|
 | PDD Analysis | BA Agent + BA review | 2 sec + 15 min | 0.25 |
@@ -410,7 +410,7 @@ Project Management (10%)        $80K
 TOTAL (Traditional)            $630K per solution
 ```
 
-**With A-ADLC (50% labor reduction + 40% faster)**:
+**With AASDI (50% labor reduction + 40% faster)**:
 ```
 BA Analysis & Design (agent)   $8K   (0.5 hrs × $100/hr + compute)
 Architecture Design (agent)    $5K   (1 hr × $100/hr + compute)
@@ -419,7 +419,7 @@ Development (agent + review)   $100K (20% hand-code, heavy review)
 QA & Testing (agent)           $30K  (3 hrs × $100/hr + execution)
 Project Management (10%)        $40K  (40% effort reduction)
 ─────────────────────────────────────
-TOTAL (A-ADLC)                 $186K per solution
+TOTAL (AASDI)                 $186K per solution
 ```
 
 **Economics**:
@@ -497,7 +497,7 @@ TOTAL (A-ADLC)                 $186K per solution
 |------|-----------|--------|-----------|
 | **Delivery team resistance ("agents replacing jobs")** | Medium | High | - **Communication**: Frame as "augmentation" (agents do busywork, humans do strategy) <br> - **Training**: "Agent co-pilot" certification for all delivery roles <br> - **Reassurance**: Career progression (junior→senior via expertise, not tenure) |
 | **Client skepticism on AI-generated code/design** | High | High | - **Early wins**: 5 pilot projects with eager-adopter clients <br> - **Transparency**: Publish defect rates, compliance audit results <br> - **Warranty**: 30-day zero-defect guarantee (1st contract with each client) |
-| **Change management across 500+ teams** | High | Medium | - **Phased rollout**: 5 pilot teams → 25 → 100 → 500 <br> - **Dedicated CoE**: A-ADLC Center of Excellence (10 FTEs) for training & support <br> - **Incentives**: Delivery teams get bonus for 90%+ on-time, zero-defect delivery |
+| **Change management across 500+ teams** | High | Medium | - **Phased rollout**: 5 pilot teams → 25 → 100 → 500 <br> - **Dedicated CoE**: AASDI Center of Excellence (10 FTEs) for training & support <br> - **Incentives**: Delivery teams get bonus for 90%+ on-time, zero-defect delivery |
 
 ---
 
@@ -544,7 +544,7 @@ TOTAL (A-ADLC)                 $186K per solution
 ### 8.1 Target Audiences & Messages
 
 #### **1. C-Suite / Executive Sponsors**
-**Message**: "A-ADLC is a $250M+ value play, transforming delivery economics while de-risking solution quality."
+**Message**: "AASDI is a $250M+ value play, transforming delivery economics while de-risking solution quality."
 
 **Key Talking Points**:
 - 70% cost reduction per solution ($630K → $186K)
@@ -557,7 +557,7 @@ TOTAL (A-ADLC)                 $186K per solution
 ---
 
 #### **2. Delivery Leadership (SVP/VP Delivery)**
-**Message**: "A-ADLC frees your teams from busywork, enabling focus on architecture, innovation, and client strategy."
+**Message**: "AASDI frees your teams from busywork, enabling focus on architecture, innovation, and client strategy."
 
 **Key Talking Points**:
 - 93% effort reduction in junior-level tasks (boilerplate analysis, coding, testing)
@@ -570,7 +570,7 @@ TOTAL (A-ADLC)                 $186K per solution
 ---
 
 #### **3. Individual Delivery Teams (BA, Architect, Dev, QA)**
-**Message**: "A-ADLC augments your skills, making you more productive and valuable to clients."
+**Message**: "AASDI augments your skills, making you more productive and valuable to clients."
 
 **Key Talking Points**:
 - **BAs**: Stop doing manual document review; focus on requirement synthesis & business logic
@@ -592,7 +592,7 @@ TOTAL (A-ADLC)                 $186K per solution
    - Delivery leadership town hall (vision, pilot plan, timeline)
    - Volunteer recruitment for pilot teams
 3. **Communications**
-   - "A-ADLC Kickoff" all-hands video from Chief Delivery Officer
+   - "AASDI Kickoff" all-hands video from Chief Delivery Officer
    - FAQ & myths-vs-facts document
 
 #### **Pilot Phase (Weeks 7–14)**
@@ -625,14 +625,14 @@ TOTAL (A-ADLC)                 $186K per solution
 
 ### 9.1 Competitive Landscape
 
-| Competitor | Offering | Gaps vs. A-ADLC |
+| Competitor | Offering | Gaps vs. AASDI |
 |-----------|----------|-----------------|
 | **IBM Granite** | Code generation (code.ibm.com) | Single agent (dev only), no governance, no cross-phase orchestration |
 | **GitHub Copilot** | Code synthesis at IDE level | 1 developer per license, no enterprise governance, no QA/testing phase |
 | **GitLab Duo** | Code suggestions + deployment | Limited to GitLab ecosystem, no design/architecture phase |
 | **DeepSeek / Cursor** | IDE-based agent coding | Solo developer tool, no enterprise scale |
 | **Deloitte / EY AI Labs** | Custom agentic delivery (closed) | Not productized; manual setup per client; not industry-standard |
-| **A-ADLC (Accenture)** | **End-to-end orchestration: BA → Arch → TL → Dev → QA** | ✅ Full lifecycle ✅ Governance gates ✅ Enterprise scale ✅ Competitive moat (IP) |
+| **AASDI (Accenture)** | **End-to-end orchestration: BA → Arch → TL → Dev → QA** | ✅ Full lifecycle ✅ Governance gates ✅ Enterprise scale ✅ Competitive moat (IP) |
 
 ---
 
@@ -750,7 +750,7 @@ TOTAL (A-ADLC)                 $186K per solution
 
 | Term | Definition |
 |------|-----------|
-| **A-ADLC** | Agentic Automation Development Lifecycle |
+| **AASDI** | Auto Agentic Solution Development with Human in Lead |
 | **PDD** | Problem Definition Document (client's request) |
 | **SDD** | Solution Design Document (architecture) |
 | **TDD** | Technical Design Document (implementation blueprint) |
@@ -770,7 +770,7 @@ TOTAL (A-ADLC)                 $186K per solution
 # Pilot Project Charter: [Project Name]
 
 ## Objective
-Demonstrate A-ADLC end-to-end workflow (PDD → UAT) in [Domain] context.
+Demonstrate AASDI end-to-end workflow (PDD → UAT) in [Domain] context.
 
 ## Scope
 - Solution Type: [BPM / Cloud / Custom Dev / Data / Low-code]
@@ -822,9 +822,9 @@ Demonstrate A-ADLC end-to-end workflow (PDD → UAT) in [Domain] context.
 
 ## CONCLUSION
 
-**A-ADLC Platform is not just a tool—it is a new delivery operating model.**
+**AASDI Platform is not just a tool—it is a new delivery operating model.**
 
-By orchestrating AI agents across the full solution lifecycle while preserving human judgment, decision-making, and governance, A-ADLC achieves:
+By orchestrating AI agents across the full solution lifecycle while preserving human judgment, decision-making, and governance, AASDI achieves:
 
 ✅ **60% delivery acceleration** (45 days → 8 days)  
 ✅ **70% cost reduction** ($630K → $186K per solution)  
@@ -839,6 +839,6 @@ For Accenture, this represents a **$250M+ annual value opportunity** and a **sus
 
 ## Document Version History
 - **v1.0** (May 19, 2026): Initial McKinsey-grade presentation deck
-- **Author**: A-ADLC Core Team (Jayashree Pal, Nitin Varshneya, Parinita Rani, Partha Nag)
+- **Author**: AASDI Core Team (Jayashree Pal, Nitin Varshneya, Parinita Rani, Partha Nag)
 - **Intended Audience**: C-Suite, Delivery Leadership, Pilot Teams
 - **Next Review**: June 2, 2026 (Post-MVP validation)

@@ -1,20 +1,20 @@
-# A-ADLC Platform — Quick Start Guide
+# AASDI Platform — Quick Start Guide
 
 ## What Has Been Built
 
-A complete, production-ready React application implementing the **Agentic Automation Development Lifecycle (A-ADLC)** framework. This is a multi-page web platform designed to orchestrate AI agents through automation development.
+A complete, production-ready React application implementing the **Auto Agentic Solution Development with Human in Lead (AASDI)** framework. This is a multi-page web platform designed to orchestrate AI agents through automation development.
 
 ### ✅ Completed Components
 
 **7 Full Pages with McKinsey Design System:**
 
-1. **Dashboard** — Overview of all active projects, A-ADLC process explanation, project status table
+1. **Dashboard** — Overview of all active projects, AASDI process explanation, project status table
 2. **BA Agent** — Requirement hardening workflow with gap analysis, clarification cycles
 3. **Architect Agent** — Solution design with tech stack analysis and component architecture
 4. **Tech Lead Agent** — Technical decomposition, pseudocode, task mapping
 5. **Developer Agent** — Code generation progress, module breakdown, quality metrics
 6. **QA Agent** — Test case management, execution results, bug tracking
-7. **Project Detail** — Individual project view with full A-ADLC timeline and deliverables
+7. **Project Detail** — Individual project view with full AASDI timeline and deliverables
 
 **Design System Implementation:**
 - ✅ Light theme (warm off-white palette) with dark mode toggle
@@ -83,7 +83,7 @@ Agent Development/
 ## Features & Demo Data
 
 ### Dashboard
-- **4 sample projects** at different A-ADLC phases
+- **4 sample projects** at different AASDI phases
 - **KPI metrics** (total projects, in-progress, awaiting review, completed)
 - **Active projects table** with progress bars
 - **Workflow overview** explaining the 5-phase process
@@ -119,7 +119,7 @@ Agent Development/
 - **Test framework explanation**
 
 ### Project Detail Page
-- **Timeline view** of all 5 A-ADLC phases
+- **Timeline view** of all 5 AASDI phases
 - **Deliverables table** (PDD, SDD, LLD, Code, Test Report)
 - **BT approval tracking** for each phase
 - **Project metadata** and quick actions
@@ -282,7 +282,7 @@ PORT=3001 npm start
 ### For Development
 1. Read `CLAUDE.md` for detailed development guide
 2. Read `README.md` for full feature documentation
-3. Review `adlc.md` for A-ADLC framework specification
+3. Review `adlc.md` for AASDI framework specification
 
 ### For Deployment
 1. Run `npm run build` to create production build
@@ -323,7 +323,7 @@ PORT=3001 npm start
 
 ## Summary
 
-You now have a **production-ready React application** implementing the Agentic Automation Development Lifecycle. It's fully styled using the McKinsey Editorial Executive design system, includes 7 pages with realistic A-ADLC workflows, and is ready for backend integration with Claude Code CLI agents.
+You now have a **production-ready React application** implementing the Auto Agentic Solution Development with Human in Lead. It's fully styled using the McKinsey Editorial Executive design system, includes 7 pages with realistic AASDI workflows, and is ready for backend integration with Claude Code CLI agents.
 
 **Start the app now:**
 ```bash

@@ -135,7 +135,7 @@ export default function BAAgent() {
       </div>
 
       <footer>
-        BA Agent · Requirement Hardening Phase · A-ADLC Platform
+        BA Agent · Requirement Hardening Phase · AASDI Platform
       </footer>
     </div>
   );

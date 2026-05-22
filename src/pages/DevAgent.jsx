@@ -135,7 +135,7 @@ export default function DevAgent() {
       </div>
 
       <footer>
-        Developer Agent · Code Generation Phase · A-ADLC Platform
+        Developer Agent · Code Generation Phase · AASDI Platform
       </footer>
     </div>
   );

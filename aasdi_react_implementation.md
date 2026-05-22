@@ -1,6 +1,6 @@
-# A-ADLC React Implementation Guide
+# AASDI React Implementation Guide
 
-This document provides a production-ready React implementation framework for the Agentic Automation Development Lifecycle (A-ADLC) project, adhering to the McKinsey-inspired design system tokens.
+This document provides a production-ready React implementation framework for the Auto Agentic Solution Development with Human in Lead (AASDI) project, adhering to the McKinsey-inspired design system tokens.
 
 ## 1. Project Structure
 
@@ -55,7 +55,7 @@ import { TopNavBar, SideNavBar, Footer } from './components';
 const AppLayout = ({ children }) => {
   return (
     <div className="min-h-screen bg-surface font-sans text-primary">
-      <TopNavBar productName="A-ADLC Agentic Lifecycle" />
+      <TopNavBar productName="AASDI Agentic Lifecycle" />
       <div className="flex pt-16">
         <SideNavBar activeTab="Executive Overview" />
         <main className="flex-1 p-8 ml-64 mb-16">

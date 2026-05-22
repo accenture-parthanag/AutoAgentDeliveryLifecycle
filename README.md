@@ -1,10 +1,10 @@
-# A-ADLC Platform: Agentic Automation Development Lifecycle
+# AASDI Platform: Auto Agentic Solution Development with Human in Lead
 
-A professional, multi-page React application implementing the Agentic Automation Development Lifecycle framework. This platform orchestrates AI agents through five specialized roles (BA, Architect, Tech Lead, Developer, QA) to automate business process automation development.
+A professional, multi-page React application implementing the Auto Agentic Solution Development with Human in Lead framework. This platform orchestrates AI agents through five specialized roles (BA, Architect, Tech Lead, Developer, QA) to automate business process automation development.
 
 ## Overview
 
-The A-ADLC represents a modernized approach to automation delivery where:
+The AASDI represents a modernized approach to automation delivery where:
 - **BA Agent** performs requirement hardening and gap analysis → generates Final PDD
 - **Architect Agent** designs the technical solution and selects tech stack → generates SDD
 - **Tech Lead Agent** decomposes design into atomic tasks and pseudocode → generates LLD
@@ -67,7 +67,7 @@ The app will open at `http://localhost:3000`
 
 ### 1. **Dashboard** (`/`)
 - **Overview Metrics**: Total projects, in-progress count, awaiting review, completed
-- **Process Flow**: Visual explanation of the 5-phase A-ADLC workflow
+- **Process Flow**: Visual explanation of the 5-phase AASDI workflow
 - **Active Projects Table**: Shows all pipelines with status, current phase, progress bar, and BT collaborator
 - **Quick Start Section**: Links to create new projects or view pipelines
 - **Governance Callout**: Explains human-in-the-loop approval structure
@@ -107,7 +107,7 @@ The app will open at `http://localhost:3000`
 
 ### 7. **Project Detail** (`/project/:id`)
 - **Project Overview**: Name, description, status, progress, collaborator
-- **A-ADLC Timeline**: Interactive timeline showing phase progression with status indicators
+- **AASDI Timeline**: Interactive timeline showing phase progression with status indicators
 - **Deliverables Table**: All phase documents (PDD, SDD, LLD, Code, Test Report) with completion and approval status
 - **Project Metadata**: Creation date, collaborator, project ID
 - **Quick Actions**: Download deliverables, view documents, view architecture
@@ -267,8 +267,8 @@ For production, integrate with a backend API or state management library (Redux,
 
 ## License
 
-Proprietary — McKinsey design system inspired, built for A-ADLC workflow automation.
+Proprietary — McKinsey design system inspired, built for AASDI workflow automation.
 
 ## Questions?
 
-Refer to `adlc.md` for the full A-ADLC specification and framework documentation.
+Refer to `aasdi.md` for the full AASDI specification and framework documentation.

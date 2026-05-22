@@ -1,4 +1,4 @@
-# A-ADLC Platform: McKinsey-Grade Presentation Slide Guide
+# AASDI Platform: McKinsey-Grade Presentation Slide Guide
 ## Complete Slide Deck Outline & Talking Points
 
 ---
@@ -7,7 +7,7 @@
 
 ### **SLIDE 1: COVER SLIDE**
 ```
-Title:    "A-ADLC Platform"
+Title:    "AASDI Platform"
 Subtitle: "Transforming Delivery Through Agentic Automation"
 Tagline:  "60% Faster. 40% Cheaper. 99% Compliant."
 
@@ -20,7 +20,7 @@ Design Elements:
 ```
 
 **Speaker Notes (30 sec)**:
-"Good morning. Today we're presenting A-ADLC—the Agentic Automation Development Lifecycle Platform. This isn't just a tool; it's a new operating model for how we deliver solutions. In 8 weeks, our team has built a proof-of-concept that cuts delivery time from 45 days to 8 days, reduces costs by 70%, and achieves near-zero defects. We're going to show you how, and more importantly, what it means for Accenture's future."
+"Good morning. Today we're presenting AASDI—the Auto Agentic Solution Development with Human in Lead Platform. This isn't just a tool; it's a new operating model for how we deliver solutions. In 8 weeks, our team has built a proof-of-concept that cuts delivery time from 45 days to 8 days, reduces costs by 70%, and achieves near-zero defects. We're going to show you how, and more importantly, what it means for Accenture's future."
 
 ---
 
@@ -92,7 +92,7 @@ Here's the math: If we cut 45 days to 8 days for each solution, that's 37 days f
 
 ---
 
-### **SLIDE 4: THE VISION – A-ADLC MODEL**
+### **SLIDE 4: THE VISION – AASDI MODEL**
 
 **Visual Layout** (this is the hero slide):
 ```
@@ -133,7 +133,7 @@ TOTAL: 8 days vs. 45 days
 ```
 
 **Talking Points (60 sec)**:
-"Here's how A-ADLC works. Instead of sequential handoffs, we have five AI agents operating in a coordinated, parallel model. The BA Agent ingests the PDD in 2 seconds—extracting scope, requirements, and identifying gaps. The Architect Agent generates the Solution Design Document in 5 minutes. The Tech Lead Agent decomposes that into Technical Design in 10 minutes. Meanwhile, the Developer Agent writes production code in 20 minutes, and the QA Agent generates and runs test scenarios in 15 minutes.
+"Here's how AASDI works. Instead of sequential handoffs, we have five AI agents operating in a coordinated, parallel model. The BA Agent ingests the PDD in 2 seconds—extracting scope, requirements, and identifying gaps. The Architect Agent generates the Solution Design Document in 5 minutes. The Tech Lead Agent decomposes that into Technical Design in 10 minutes. Meanwhile, the Developer Agent writes production code in 20 minutes, and the QA Agent generates and runs test scenarios in 15 minutes.
 
 All of this happens under a continuous governance layer—every phase output is validated for compliance, security, and architectural fit. If something fails the gate, it escalates to the human owner with a clear remediation path. The human is always in control—they review, approve, and make final decisions. The agents do the heavy lifting; humans do the judgment calls.
 
@@ -146,7 +146,7 @@ The result: 8 days from PDD to UAT-ready code. No rework. No scope creep dispute
 **Visual Layout** (3 columns, each with icon + description):
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│          3 CORE INNOVATIONS ENABLING A-ADLC                │
+│          3 CORE INNOVATIONS ENABLING AASDI                │
 ├─────────────────────────────────────────────────────────────┤
 │
 │  🧠 AGENTIC PROMPTING          🔗 STRUCTURED HANDOFFS       🔐 CONTINUOUS GATES
@@ -168,7 +168,7 @@ The result: 8 days from PDD to UAT-ready code. No rework. No scope creep dispute
 ```
 
 **Talking Points (45 sec)**:
-"Three technical innovations make A-ADLC work at enterprise scale:
+"Three technical innovations make AASDI work at enterprise scale:
 
 First, **Agentic Prompting with Guardrails**. Each agent doesn't just get a document; it gets a full context stack: the input, an enterprise template (e.g., 'Here's our standard SDD structure'), security policies (e.g., 'All data must be encrypted in transit'), and architecture constraints (e.g., 'Use microservices patterns only'). This ensures that on the first generation, the agent produces output that matches our standards—not 80% correct, needing 3 rounds of review.
 
@@ -229,7 +229,7 @@ By the end of the MVP, we want to show that the BA Agent can complete 85% of doc
 
 **Visual Layout** (before/after timeline):
 ```
-BEFORE (Traditional)          AFTER (A-ADLC)
+BEFORE (Traditional)          AFTER (AASDI)
 
 PDD Analysis       8 hrs      PDD Analysis       2 sec
 Gaps/Clarif       24 hrs      Arch Design        5 min
@@ -244,7 +244,7 @@ Cost of Delay:
 45 days × $50K/day (cost of capital) = $2.25M per solution
 × 500 solutions = $1.125B annual cost of delay
 
-A-ADLC saves:
+AASDI saves:
 37 days × $50K/day × 500 solutions = $925M annual value
 (time-to-revenue acceleration)
 ```
@@ -254,7 +254,7 @@ A-ADLC saves:
 
 Here's the math: At Accenture, every day of delay costs us $50K per solution in cost-of-capital and opportunity cost. That's $2.25M per solution delayed. Across 500 solutions, a 45-day cycle costs us $1.125B in annual cost of delay.
 
-A-ADLC cuts that to 8 days. That's 37 days faster per solution, × $50K/day, × 500 solutions per year = $925M in annual value from time-to-revenue acceleration alone.
+AASDI cuts that to 8 days. That's 37 days faster per solution, × $50K/day, × 500 solutions per year = $925M in annual value from time-to-revenue acceleration alone.
 
 But it's not just financial. Faster delivery also means we can win agile/rapid-innovation deals in FinTech, InsurTech, and other fast-moving verticals where 45-day cycles are a competitive disadvantage. We're targeting a 60% reduction in delivery time—45 days to 8 days—as the primary KRA here."
 
@@ -304,11 +304,11 @@ But it's not just financial. Faster delivery also means we can win agile/rapid-i
 ```
 
 **Talking Points (60 sec)**:
-"The third KRA is Quality and Compliance. Today, we're seeing 2–3% post-launch defects. With A-ADLC's continuous governance gates, we're targeting <0.5%. That means instead of 20–30 defects escaping to production out of 1,000 solutions, we get only 5. Each defect costs about $200K to remediate post-launch, so preventing 15 defects saves us $3M per year.
+"The third KRA is Quality and Compliance. Today, we're seeing 2–3% post-launch defects. With AASDI's continuous governance gates, we're targeting <0.5%. That means instead of 20–30 defects escaping to production out of 1,000 solutions, we get only 5. Each defect costs about $200K to remediate post-launch, so preventing 15 defects saves us $3M per year.
 
-But quality isn't just about defects—it's about consistency. Today, standards adherence is about 65% because we rely on code reviews and architecture reviews, which are subjective. With A-ADLC, every design and code artifact is automatically validated against architectural patterns, security policies, and compliance requirements *before* human review. We're aiming for 100% standards adherence on first submission.
+But quality isn't just about defects—it's about consistency. Today, standards adherence is about 65% because we rely on code reviews and architecture reviews, which are subjective. With AASDI, every design and code artifact is automatically validated against architectural patterns, security policies, and compliance requirements *before* human review. We're aiming for 100% standards adherence on first submission.
 
-Finally, requirements traceability. Today, we only track about 60% of requirements from PDD through Design, Code, and Tests. This causes scope creep disputes and audit failures. A-ADLC creates an immutable audit trail: every requirement in the PDD is linked to design elements, code modules, and test cases. This speeds up compliance audits from 6 weeks to 1 week."
+Finally, requirements traceability. Today, we only track about 60% of requirements from PDD through Design, Code, and Tests. This causes scope creep disputes and audit failures. AASDI creates an immutable audit trail: every requirement in the PDD is linked to design elements, code modules, and test cases. This speeds up compliance audits from 6 weeks to 1 week."
 
 ---
 
@@ -338,7 +338,7 @@ Finally, requirements traceability. Today, we only track about 60% of requiremen
 │  PLUS: Cost avoidance from rework
 │  ─────────────────────────────────────────
 │  Rework cycles: 3–4 per solution today
-│  With A-ADLC: <1.5 per solution
+│  With AASDI: <1.5 per solution
 │  
 │  Rework cost avoided: 1.5 rework cycles × $200K × 500 = $150M/year
 │
@@ -351,9 +351,9 @@ Finally, requirements traceability. Today, we only track about 60% of requiremen
 **Talking Points (60 sec)**:
 "The fourth KRA is Cost Efficiency. This is where the rubber meets the road for finance. Today, a $630K solution breaks down as: $80K for BA analysis, $72K for architecture, $48K for tech design, $250K for development (50% hand-coding), and $100K for QA.
 
-With A-ADLC agents handling the routine work, and humans doing the review, we drop this to $186K per solution. That's a 70% reduction—from $630K to $186K. Across 500 solutions, that's $222M in annual cost reduction.
+With AASDI agents handling the routine work, and humans doing the review, we drop this to $186K per solution. That's a 70% reduction—from $630K to $186K. Across 500 solutions, that's $222M in annual cost reduction.
 
-But there's a second effect: rework avoidance. Today, teams iterate 3–4 times on average because of design misinterpretations, code rewrites, and incomplete test coverage. With A-ADLC's structured handoffs and automated gates, we reduce rework iterations to <1.5. Each rework cycle costs $200K, so preventing 1.5 rework cycles per solution saves us another $150M annually.
+But there's a second effect: rework avoidance. Today, teams iterate 3–4 times on average because of design misinterpretations, code rewrites, and incomplete test coverage. With AASDI's structured handoffs and automated gates, we reduce rework iterations to <1.5. Each rework cycle costs $200K, so preventing 1.5 rework cycles per solution saves us another $150M annually.
 
 Combined: $222M direct savings + $150M rework avoidance = **$372M annual impact**. That's a game-changer for P&L."
 
@@ -416,7 +416,7 @@ We're also planning to expand integrations from today's 2 systems (GitHub and Mo
 
 The goal is innovation velocity: 2 major releases per quarter, continuously improving agent quality through A/B testing, adding new use-case templates, and verticalizing for specific industries like FinTech and HealthTech.
 
-This positions A-ADLC as a strategic differentiator—not a one-off project, but a core delivery platform."
+This positions AASDI as a strategic differentiator—not a one-off project, but a core delivery platform."
 
 ---
 
@@ -710,7 +710,7 @@ Finally, compliance and regulatory concerns. We're engaging Legal, Compliance, a
 │  ────────────────────────────────────────────────────────
 │  • Executive alignment (C-Suite ROI briefing)
 │  • Volunteer recruitment (5 pilot projects)
-│  • "A-ADLC Kickoff" all-hands video
+│  • "AASDI Kickoff" all-hands video
 │  • FAQ & myths-vs-facts document
 │
 │  ─────────────────────────────────────────────────────────
@@ -762,7 +762,7 @@ First, pre-launch: We brief C-Suite on ROI, recruit volunteers for pilot project
 
 Then we roll out in three waves: First wave (25 teams), we do intensive training and support. Second wave (100 teams), we expand training and add incentives—teams get bonuses for 90%+ on-time delivery and zero defects. Third wave (500+ teams), we're at full scale.
 
-The key enabler is our A-ADLC Center of Excellence—a team of 7–10 FTEs who own training, support, and continuous improvement. They make sure no team gets stuck."
+The key enabler is our AASDI Center of Excellence—a team of 7–10 FTEs who own training, support, and continuous improvement. They make sure no team gets stuck."
 
 ---
 
@@ -833,7 +833,7 @@ Quarterly, we do a board-level review of aggregate KPIs, competitive benchmarks,
 **Visual Layout** (competitive differentiation):
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  COMPETITIVE ADVANTAGE: WHY A-ADLC MATTERS                │
+│  COMPETITIVE ADVANTAGE: WHY AASDI MATTERS                │
 ├──────────────────────────────────────────────────────────┤
 │
 │  1️⃣ SPEED-TO-MARKET LEADERSHIP
@@ -880,7 +880,7 @@ Quarterly, we do a board-level review of aggregate KPIs, competitive benchmarks,
 ```
 
 **Talking Points (60 sec)**:
-"Here's why A-ADLC is a strategic game-changer. We've built a machine that can outcompete everyone on the market on speed, cost, quality, and talent efficiency. That's rare.
+"Here's why AASDI is a strategic game-changer. We've built a machine that can outcompete everyone on the market on speed, cost, quality, and talent efficiency. That's rare.
 
 First, speed. We can deliver in 8–14 days vs. competitors' 45–60 day norm. That's table-stakes for agile/rapid-innovation deals in FinTech and InsurTech—the fastest-growing segments. We become the delivery partner of choice for speed-obsessed clients.
 
@@ -1035,7 +1035,7 @@ The question is: Are you ready to move fast and transform delivery?"
 
 ## APPENDIX: SUPPORTING VISUALS
 
-### A-ADLC Orchestration Diagram (Detailed)
+### AASDI Orchestration Diagram (Detailed)
 ```
 [SEE SLIDE 4 - HERO DIAGRAM]
 ```
@@ -1055,5 +1055,5 @@ The question is: Are you ready to move fast and transform delivery?"
 ## VERSION HISTORY
 - **v1.0** (May 19, 2026): Initial 18-slide McKinsey-grade deck outline
 - **Last Updated**: May 19, 2026
-- **Author**: A-ADLC Core Team
+- **Author**: AASDI Core Team
 

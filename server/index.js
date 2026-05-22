@@ -35,7 +35,7 @@ async function start() {
   try {
     await connectDb();
     const server = app.listen(PORT, () => {
-      console.log(`✓ A-ADLC Backend running on port ${PORT}`);
+      console.log(`✓ AASDI Backend running on port ${PORT}`);
       console.log(`  Health check: http://localhost:${PORT}/api/health`);
     });
 

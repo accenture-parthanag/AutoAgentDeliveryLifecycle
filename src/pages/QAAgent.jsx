@@ -146,7 +146,7 @@ export default function QAAgent() {
       </div>
 
       <footer>
-        QA Agent · Quality Assurance Phase · A-ADLC Platform
+        QA Agent · Quality Assurance Phase · AASDI Platform
       </footer>
     </div>
   );

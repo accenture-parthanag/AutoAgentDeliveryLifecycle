@@ -1,12 +1,12 @@
 @echo off
-REM A-ADLC Platform - Process Terminator
+REM AASDI Platform - Process Terminator
 REM Stops all running node.js processes and closes service windows
 
 setlocal enabledelayedexpansion
 
 echo.
 echo ================================================================
-echo   A-ADLC Platform - Stopping All Processes
+echo   AASDI Platform - Stopping All Processes
 echo ================================================================
 echo.
 

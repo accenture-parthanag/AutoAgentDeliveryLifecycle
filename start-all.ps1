@@ -1,8 +1,8 @@
-# A-ADLC Platform - Multi-Process Launcher
+# AASDI Platform - Multi-Process Launcher
 # Starts all three processes needed for full platform functionality
 
 Write-Host "========================================================"
-Write-Host "  A-ADLC Platform - Starting All Processes"
+Write-Host "  AASDI Platform - Starting All Processes"
 Write-Host "========================================================"
 Write-Host ""
 
