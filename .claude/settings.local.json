@@ -25,7 +25,11 @@
       "Bash(git commit *)",
       "Bash(git mv *)",
       "Bash(git remote *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(& .\\\\start-all.ps1)",
+      "Bash(mongosh *)",
+      "PowerShell(Start-Sleep -Seconds 3; $response = Invoke-WebRequest -Uri \"http://localhost:5000/api/projects\" -UseBasicParsing -ErrorAction SilentlyContinue; if \\($response.StatusCode -eq 200\\) { $projects = $response.Content | ConvertFrom-Json; Write-Host \"Found $\\($projects.Count\\) projects\" -ForegroundColor Green; if \\($projects.Count -gt 0\\) { Write-Host \"First project:\" -ForegroundColor Cyan; $projects[0] | ConvertTo-Json | Write-Host } } else { Write-Host \"API not ready yet\" })"
     ]
   }
 }

@@ -1422,3 +1422,45 @@ footer {
 .phase-progress-step .material-symbols-outlined {
   font-size: 16px;
 }
+
+/* ============================================================
+   ACTIVITY LOG STYLES
+   ============================================================ */
+
+.activity-log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.activity-log-entry {
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--outline-variant);
+  align-items: start;
+}
+
+.activity-log-entry:last-child {
+  border-bottom: none;
+}
+
+.activity-log-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--on-surface-variant);
+  white-space: nowrap;
+}
+
+.activity-log-action {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.activity-log-meta {
+  font-size: 11px;
+  color: var(--on-surface-variant);
+  white-space: nowrap;
+  text-align: right;
+}

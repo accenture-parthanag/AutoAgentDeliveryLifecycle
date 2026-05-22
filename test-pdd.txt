@@ -1,0 +1,30 @@
+PROCESS DEFINITION DOCUMENT (PDD)
+=====================================
+
+PROJECT NAME: Graphic Tracker Autonumbering
+
+DESCRIPTION:
+Graphics Tracker is the Primary tool for Pursuit Services graphics support on Word response documents which is used for submitting and tracking progress of graphic requests, and inventory management for future reference/reuse. It is also used for storage of completed graphic files, associated templates, and production materials.
+
+SCOPE OF WORK:
+• Review RFX/project scope, design & submission requirements
+• Consult with deal team to gather and assess client insights and win themes
+• Discuss and brainstorm with deal team for materials to support submission/meeting
+• Create document templates complying with client and RFX requirements/branding
+• Leverage repository of reusable graphics/assets to create custom graphics
+• Use the Graphics tracker to track status for word only
+• Create graphics tracker to track status of individual graphics files
+• Update graphics tracker where graphics modifications requested - new slide within the file is created for each modification
+• Paste completed graphics files to Word file
+• Use iterative review cycle to refine graphics based on input from deal team
+• Format final documents and conduct quality check
+• Prepare files for final print production or digital submission
+• Confirm all final files have been uploaded for archiving/harvesting
+
+BUSINESS OBJECTIVE:
+Automate human processes related to tracking of assets
+
+SUCCESS CRITERIA:
+Automate this process
+
+BT LEAD: BT Requestor

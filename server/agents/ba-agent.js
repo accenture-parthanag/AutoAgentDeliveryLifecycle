@@ -207,6 +207,7 @@ async function processFinalPddJob(jobData) {
       criteria: project.criteria || jobData.context.criteria || '',
       pddContent,
       processFlowDiagram: project.baProcessFlow || '(no process flow diagram available)',
+      processFlowComments: jobData.context.processFlowComments || '(no comments)',
       baGapsFormatted: formatBaGaps(project.baGaps),
       btResponsesFormatted: formatBtResponses(project.btResponses, project.baGaps)
     };
@@ -222,14 +223,26 @@ async function processFinalPddJob(jobData) {
     fs.writeFileSync(filePath, htmlContent, 'utf-8');
     console.error(`✓ Final PDD written to: ${filePath}`);
 
-    // Update project with finalPddPath
+    // Update project with finalPddPath and mark version as final
+    const updatedVersions = (project.pddVersions || []).map(v =>
+      v.status === 'under-review' ? { ...v, status: 'final', finalPddPath: filePath } : v
+    );
+
     await projectsCollection.findOneAndUpdate(
       { _id: project._id },
       {
         $set: {
           finalPddPath: filePath,
           finalPddGeneratedAt: new Date(),
+          pddVersions: updatedVersions,
           updatedAt: new Date()
+        },
+        $push: {
+          activityTimeline: {
+            action: 'BA Agent generated Final PDD',
+            user: 'BA Agent',
+            timestamp: new Date()
+          }
         }
       }
     );
@@ -410,6 +423,23 @@ async function pollAndProcess() {
       console.error(`✓ STEP 3 DONE: Got ${gaps.length} gaps`);
 
       console.error(`STEP 4: Updating project with gaps and process flow...`);
+
+      // Create initial PDD version if not yet created
+      let pddVersions = project.pddVersions || [];
+      if (pddVersions.length === 0) {
+        // This is the first version
+        pddVersions.push({
+          version: 1,
+          label: 'v1.0',
+          pddFileName: jobData.context.pddFileName || 'pdd.pdf',
+          pddFilePath: jobData.context.pddFilePath || null,
+          status: 'under-review',
+          createdAt: new Date(),
+          createdBy: 'BT Team',
+          notes: 'Initial submission'
+        });
+      }
+
       const projectUpdateResult = await projectsCollection.findOneAndUpdate(
         { _id: project._id },
         {
@@ -417,8 +447,16 @@ async function pollAndProcess() {
             baGaps: gaps,
             baProcessFlow: processFlow,
             baReviewJobId: jobData._id.toString(),
+            pddVersions,
             'phases.0.status': 'completed',
             updatedAt: new Date()
+          },
+          $push: {
+            activityTimeline: {
+              action: 'BT submitted PDD for BA review (version: v1.0)',
+              user: 'BT Team',
+              timestamp: new Date()
+            }
           }
         }
       );

@@ -51,23 +51,40 @@ export default function ProjectDetail() {
     }
   }, [project, tddStartedAt]);
 
-  // Render mermaid diagram when process flow becomes available
+  // Render mermaid diagram safely
   useEffect(() => {
-    if (!project?.baProcessFlow) return;
-    const container = document.getElementById('ba-process-flow-diagram');
-    if (!container || !window.mermaid) return;
+    if (!project?.baProcessFlow || !window.mermaid) return;
 
-    const diagramId = `mermaid-${Date.now()}`;
-    window.mermaid.render(diagramId, project.baProcessFlow)
-      .then(({ svg }) => {
-        container.innerHTML = svg;
+    const renderDiagram = async () => {
+      try {
+        const container = document.getElementById('ba-process-flow-diagram');
+        if (!container) return;
+
+        // Create fresh mermaid div
+        const newDiv = document.createElement('div');
+        newDiv.className = 'mermaid';
+        newDiv.textContent = project.baProcessFlow;
+
+        // Clear and append
+        container.innerHTML = '';
+        container.appendChild(newDiv);
+
+        // Render the diagram
+        if (window.mermaid?.mermaidAPI?.render) {
+          const { svg } = await window.mermaid.mermaidAPI.render('ba-diagram-' + Date.now(), project.baProcessFlow);
+          container.innerHTML = svg;
+        }
+
         setMermaidRendered(true);
-      })
-      .catch(err => {
-        console.error('Mermaid render error:', err);
-        container.innerHTML = `<pre style="font-size:12px;color:#666;white-space:pre-wrap">${project.baProcessFlow}</pre>`;
+      } catch (err) {
+        console.error('Mermaid error:', err);
         setMermaidRendered(true);
-      });
+      }
+    };
+
+    // Small delay to ensure DOM is ready
+    const timeout = setTimeout(renderDiagram, 100);
+    return () => clearTimeout(timeout);
   }, [project?.baProcessFlow]);
 
   // Tick every second while TDD is in progress so elapsed time + simulated progress advance
@@ -355,12 +372,14 @@ export default function ProjectDetail() {
               )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-              <Link to={`/change-request/${id}`} style={{ textDecoration: 'none' }}>
-                <button className="btn btn-primary">
-                  <span className="material-symbols-outlined" style={{ fontSize: '20px', marginRight: '8px' }}>cloud_upload</span>
-                  Submit Change Request / New PDD
-                </button>
-              </Link>
+              {isPddApproved && (
+                <Link to={`/change-request/${id}`} style={{ textDecoration: 'none' }}>
+                  <button className="btn btn-primary">
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px', marginRight: '8px' }}>description</span>
+                    Submit Change Request
+                  </button>
+                </Link>
+              )}
               {canApprove && (
                 <Link to={`/pdd-approval/${id}`} style={{ textDecoration: 'none' }}>
                   <button className="btn btn-primary" style={{ backgroundColor: '#10b981' }}>
@@ -560,6 +579,126 @@ export default function ProjectDetail() {
         );
       })()}
 
+      {/* PDD VERSIONS */}
+      {project.pddVersions && project.pddVersions.length > 0 && (
+        <div className="surface mb-lg">
+          <h2 style={{ borderBottom: '1px solid var(--outline-variant)', paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
+            PDD Version History
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+            {project.pddVersions.slice().reverse().map((version, idx) => (
+              <div key={idx} style={{
+                padding: 'var(--space-md)',
+                backgroundColor: 'var(--surface-container-low)',
+                border: '1px solid var(--outline-variant)',
+                borderLeft: version.status === 'final' ? '4px solid var(--primary-container)' : '4px solid var(--outline-variant)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>{version.label}</p>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--on-surface-variant)' }}>
+                      {new Date(version.createdAt).toLocaleDateString()} by {version.createdBy}
+                    </p>
+                  </div>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    padding: '4px 8px',
+                    backgroundColor: version.status === 'final' ? '#10b981' : version.status === 'under-review' ? '#fbbf24' : '#d1d5db',
+                    color: version.status === 'final' ? 'white' : 'black',
+                    textTransform: 'capitalize'
+                  }}>
+                    {version.status}
+                  </span>
+                </div>
+                {version.notes && (
+                  <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: 'var(--on-surface-variant)' }}>
+                    {version.notes}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* CHANGE REQUESTS */}
+      {project.changeRequests && project.changeRequests.length > 0 && (
+        <div className="surface mb-lg">
+          <h2 style={{ borderBottom: '1px solid var(--outline-variant)', paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
+            Change Request History
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+            {project.changeRequests.map((cr) => (
+              <div key={cr.id} style={{
+                padding: 'var(--space-md)',
+                backgroundColor: 'var(--surface-container-low)',
+                border: '1px solid var(--outline-variant)',
+                borderLeft: cr.status === 'approved' ? '4px solid #10b981' : cr.status === 'rejected' ? '4px solid #ef4444' : '4px solid #fbbf24'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: 0, fontSize: '13px', fontWeight: '600' }}>CR-{cr.id.slice(-8)}</p>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--on-surface-variant)' }}>
+                      Submitted: {new Date(cr.submittedAt).toLocaleDateString()} by {cr.submittedBy}
+                    </p>
+                  </div>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    padding: '4px 8px',
+                    backgroundColor: cr.status === 'approved' ? '#10b981' : cr.status === 'rejected' ? '#ef4444' : '#fbbf24',
+                    color: 'white',
+                    textTransform: 'capitalize'
+                  }}>
+                    {cr.status}
+                  </span>
+                </div>
+                <p style={{ margin: '8px 0 4px 0', fontSize: '12px' }}>
+                  <strong>Reason:</strong> {cr.reason}
+                </p>
+                {cr.revisionNotes && (
+                  <p style={{ margin: '4px 0', fontSize: '12px', color: 'var(--on-surface-variant)' }}>
+                    {cr.revisionNotes}
+                  </p>
+                )}
+                {cr.status !== 'pending-ccb' && (
+                  <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'var(--on-surface-variant)' }}>
+                    Reviewed: {new Date(cr.reviewedAt).toLocaleDateString()} by {cr.reviewedBy}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ACTIVITY LOG */}
+      {project.activityTimeline && project.activityTimeline.length > 0 && (
+        <div className="surface mb-lg">
+          <h2 style={{ borderBottom: '1px solid var(--outline-variant)', paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
+            Activity Log
+          </h2>
+          <div className="activity-log">
+            {project.activityTimeline.slice().reverse().map((log, idx) => (
+              <div key={idx} className="activity-log-entry">
+                <div className="activity-log-time">
+                  {new Date(log.timestamp).toLocaleString()}
+                </div>
+                <div className="activity-log-action">
+                  <strong>{log.action}</strong>
+                  {log.notes && <div style={{ marginTop: '4px', fontSize: '12px', color: 'var(--on-surface-variant)' }}>{log.notes}</div>}
+                  {log.reason && <div style={{ marginTop: '4px', fontSize: '12px', color: 'var(--on-surface-variant)' }}>{log.reason}</div>}
+                </div>
+                <div className="activity-log-meta">
+                  {log.user}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* BA GAPS */}
       {project.baGaps && project.baGaps.length > 0 && (
         <div className="surface mb-lg">
@@ -661,7 +800,7 @@ export default function ProjectDetail() {
             borderBottom: '1px solid var(--outline-variant)',
             paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-lg)'
           }}>
-            <h2>BA Process Flow</h2>
+            <h2>Process Flow</h2>
             <span style={{
               fontSize: '11px', fontWeight: '600', padding: '4px 8px',
               backgroundColor: 'var(--outline-variant)', textTransform: 'uppercase'
@@ -679,12 +818,19 @@ export default function ProjectDetail() {
               padding: 'var(--space-md)',
               backgroundColor: 'var(--surface-container-low)',
               overflowX: 'auto',
-              minHeight: '120px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              minHeight: '200px'
             }}
           >
+            {project.baProcessFlow && (
+              <div className="mermaid">
+                {project.baProcessFlow}
+              </div>
+            )}
+            {!project.baProcessFlow && (
+              <div style={{ color: 'var(--on-surface-variant)', fontSize: '14px', textAlign: 'center', paddingTop: '60px' }}>
+                (No process flow diagram yet)
+              </div>
+            )}
             {!mermaidRendered && (
               <p style={{ color: 'var(--on-surface-variant)', fontSize: '13px' }}>
                 Rendering diagram...
@@ -752,7 +898,7 @@ export default function ProjectDetail() {
         const pddReviewStarted = phaseStatus('pdd-review') !== 'pending';
         const approvedCrCount = (project.changeRequests || []).filter(cr => cr.status === 'approved').length;
         const computedPddVersions = Math.max(
-          project.pddVersions || 0,
+          (project.pddVersions?.length || 0),
           (pddReviewStarted ? 1 : 0) + approvedCrCount
         );
 

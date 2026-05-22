@@ -5,6 +5,18 @@ const { STATUS, STAGES, createJob } = require('../models/jobSchema');
 
 const router = Router();
 
+// Helper: Write activity log entry
+async function addActivityLog(db, projectId, entry) {
+  try {
+    await db.collection('projects').updateOne(
+      { _id: new ObjectId(projectId) },
+      { $push: { activityTimeline: { ...entry, timestamp: new Date() } } }
+    );
+  } catch (err) {
+    console.error('Error writing activity log:', err.message);
+  }
+}
+
 // POST /api/jobs - Submit a new job to the queue
 router.post('/', async (req, res) => {
   try {
@@ -84,6 +96,13 @@ router.post('/', async (req, res) => {
           );
 
           console.log(`✓ PDD approved for project ${projectId} - Update result: ${updateResult ? 'success' : 'failed'}`);
+
+          // Write activity log
+          await addActivityLog(db, projectId, {
+            action: 'BT approved BA-generated Final PDD',
+            user: cleanedContext.approvedBy || 'BT Team',
+            notes: cleanedContext.approvalNotes || ''
+          });
         } else {
           console.error(`✗ Project or phases not found for ${projectId}`);
         }
@@ -113,6 +132,12 @@ router.post('/', async (req, res) => {
             );
 
             console.log(`✓ SDD phase marked in-progress for project ${projectId}`);
+
+            // Write activity log
+            await addActivityLog(db, projectId, {
+              action: 'Architect Agent dispatched for Solution Design',
+              user: 'System'
+            });
           }
         }
       } catch (err) {
@@ -141,6 +166,13 @@ router.post('/', async (req, res) => {
       );
 
       console.log(`✓ Change request created for project ${projectId}`);
+
+      // Write activity log
+      await addActivityLog(db, projectId, {
+        action: 'BT submitted Change Request (pending CCB approval)',
+        user: cleanedContext.submittedBy || 'BT Team',
+        reason: cleanedContext.reason
+      });
     }
 
     // Special handling for BT gap responses
@@ -161,9 +193,11 @@ router.post('/', async (req, res) => {
 
         console.log(`📝 Processing BT responses for project ${projectId}:`, Object.keys(btResponses));
 
-        // Update project with BT responses
+        // Update project with BT responses and process flow feedback
         const updateData = {
           btResponses,
+          processFlowApproval: cleanedContext.processFlowApproval || null,
+          processFlowComments: cleanedContext.processFlowComments || null,
           updatedAt: new Date()
         };
 
@@ -193,8 +227,13 @@ router.post('/', async (req, res) => {
         if (result) {
           console.log(`✓ BT responses ${stage === 'submit-gap-responses' ? 'submitted' : 'saved as draft'} for project ${projectId}`);
 
-          // Auto-queue pdd_finalize job after BT submits responses (not on draft save)
           if (stage === 'submit-gap-responses') {
+            // Write activity log for submission
+            await addActivityLog(db, projectId, {
+              action: 'BT submitted responses to BA questions and approved Process Flow Diagram',
+              user: cleanedContext.submittedBy || 'BT Team'
+            });
+
             try {
               // Fetch the project to get context info and find original pdd_review job for pddFilePath
               const updatedProject = await db.collection('projects').findOne(
@@ -214,7 +253,8 @@ router.post('/', async (req, res) => {
                 scope: updatedProject?.scope || '',
                 objectives: updatedProject?.objectives || '',
                 criteria: updatedProject?.criteria || '',
-                pddFilePath
+                pddFilePath,
+                processFlowComments: cleanedContext.processFlowComments || null
               }, 2); // priority 2 = slightly higher than normal
 
               await db.collection('jobs').insertOne(finalizeJob);
@@ -223,6 +263,12 @@ router.post('/', async (req, res) => {
               console.error(`✗ Failed to queue pdd_finalize job: ${finalizeErr.message}`);
               // Non-fatal — BT responses are already saved successfully
             }
+          } else {
+            // Write activity log for draft save
+            await addActivityLog(db, projectId, {
+              action: 'BT saved draft responses',
+              user: cleanedContext.submittedBy || 'BT Team'
+            });
           }
         } else {
           console.error(`✗ Failed to update project ${projectId} with responses`);
