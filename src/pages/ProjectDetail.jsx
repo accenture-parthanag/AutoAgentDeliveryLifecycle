@@ -51,40 +51,23 @@ export default function ProjectDetail() {
     }
   }, [project, tddStartedAt]);
 
-  // Render mermaid diagram safely
+  // Render mermaid diagram - let the library handle it naturally
   useEffect(() => {
-    if (!project?.baProcessFlow || !window.mermaid) return;
+    if (!project?.baProcessFlow) return;
 
-    const renderDiagram = async () => {
+    setTimeout(() => {
       try {
-        const container = document.getElementById('ba-process-flow-diagram');
-        if (!container) return;
-
-        // Create fresh mermaid div
-        const newDiv = document.createElement('div');
-        newDiv.className = 'mermaid';
-        newDiv.textContent = project.baProcessFlow;
-
-        // Clear and append
-        container.innerHTML = '';
-        container.appendChild(newDiv);
-
-        // Render the diagram
-        if (window.mermaid?.mermaidAPI?.render) {
-          const { svg } = await window.mermaid.mermaidAPI.render('ba-diagram-' + Date.now(), project.baProcessFlow);
-          container.innerHTML = svg;
+        if (window.mermaid?.run) {
+          window.mermaid.run();
+        } else if (window.mermaid?.contentLoaded) {
+          window.mermaid.contentLoaded();
         }
-
         setMermaidRendered(true);
       } catch (err) {
-        console.error('Mermaid error:', err);
+        console.error('Mermaid render error:', err);
         setMermaidRendered(true);
       }
-    };
-
-    // Small delay to ensure DOM is ready
-    const timeout = setTimeout(renderDiagram, 100);
-    return () => clearTimeout(timeout);
+    }, 100);
   }, [project?.baProcessFlow]);
 
   // Tick every second while TDD is in progress so elapsed time + simulated progress advance
