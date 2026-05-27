@@ -1,4 +1,4 @@
-// Job queue stages - one per AASDI phase
+// Job queue stages - one per A-ADLC phase
 const STAGES = {
   PDD_REVIEW: 'pdd_review',
   SDD: 'sdd',

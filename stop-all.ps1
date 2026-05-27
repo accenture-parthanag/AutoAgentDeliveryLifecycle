@@ -1,9 +1,9 @@
-# AASDI Platform - Process Terminator
+# A-ADLC Platform - Process Terminator
 # Stops all running services and closes PowerShell windows
 
 Write-Host ""
 Write-Host "========================================================"
-Write-Host "  AASDI Platform - Stopping All Processes"
+Write-Host "  A-ADLC Platform - Stopping All Processes"
 Write-Host "========================================================"
 Write-Host ""
 

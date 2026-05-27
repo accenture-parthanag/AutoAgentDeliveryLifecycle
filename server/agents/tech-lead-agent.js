@@ -4,6 +4,8 @@ const { MongoClient, ObjectId } = require('mongodb');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const PDFParse = require('pdf-parse');
+const mammoth = require('mammoth');
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const MONGODB_DB = process.env.MONGODB_DB || 'aadlc';
@@ -64,10 +66,49 @@ function formatSdd(sdd) {
   return JSON.stringify(sdd, null, 2);
 }
 
-function generateTddWithClaude(project) {
+function formatImageManifest(manifest) {
+  if (!Array.isArray(manifest) || manifest.length === 0) {
+    return '(no images embedded in the PDD)';
+  }
+  return manifest
+    .map(img => `- Image #${img.index}: filename="${img.filename}" contentType=${img.contentType} bytes=${img.bytes} altText="${img.altText || '(none)'}"`)
+    .join('\n');
+}
+
+async function loadPddPayload(projectId, sddPddImages) {
+  const allJobs = await db.collection('jobs').find({ projectId }).toArray();
+  const sorted = allJobs.filter(j => j.context?.pddFilePath)
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  const cr = sorted.find(j => j.stage === 'change-request');
+  const pr = sorted.find(j => j.stage === 'pdd_review');
+  const filePath = cr?.context?.pddFilePath || pr?.context?.pddFilePath || sorted[0]?.context?.pddFilePath || null;
+
+  if (!filePath || !fs.existsSync(filePath)) {
+    return { text: '(no PDD on disk — SDD is authoritative)', imageManifest: sddPddImages || [], filePath: null };
+  }
+  try {
+    if (filePath.toLowerCase().endsWith('.pdf')) {
+      const buf = fs.readFileSync(filePath);
+      const pdf = await PDFParse(buf);
+      return { text: pdf.text, imageManifest: sddPddImages || [], filePath };
+    }
+    if (filePath.toLowerCase().endsWith('.docx')) {
+      const buf = fs.readFileSync(filePath);
+      const r = await mammoth.extractRawText({ buffer: buf });
+      return { text: r.value, imageManifest: sddPddImages || [], filePath };
+    }
+    return { text: fs.readFileSync(filePath, 'utf-8'), imageManifest: sddPddImages || [], filePath };
+  } catch (e) {
+    return { text: `PDD read error: ${e.message}`, imageManifest: sddPddImages || [], filePath };
+  }
+}
+
+async function generateTddWithClaude(project) {
   if (!project.sddDocument) {
     throw new Error('Project has no sddDocument — Architect agent must run first');
   }
+
+  const pddPayload = await loadPddPayload(project._id.toString(), project.sddPddImages);
 
   const prompt = renderPrompt({
     projectName: project.name,
@@ -76,6 +117,8 @@ function generateTddWithClaude(project) {
     objectives: project.objectives,
     criteria: project.criteria,
     sddDocument: formatSdd(project.sddDocument),
+    fileContent: pddPayload.text,
+    imageManifest: formatImageManifest(pddPayload.imageManifest),
     baGaps: formatBaGaps(project.baGaps),
     btResponses: formatBtResponses(project.btResponses, project.baGaps),
   });
@@ -192,7 +235,7 @@ async function pollAndProcess() {
       console.error(`✓ STEP 1 DONE: Project "${project.name}" found`);
 
       console.error(`STEP 2: Calling Claude to generate TDD...`);
-      const tdd = generateTddWithClaude(project);
+      const tdd = await generateTddWithClaude(project);
       console.error(`✓ STEP 2 DONE`);
 
       console.error(`STEP 3: Updating project with TDD...`);

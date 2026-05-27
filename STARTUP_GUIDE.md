@@ -1,6 +1,6 @@
-# AASDI Platform - Startup Guide
+# A-ADLC Platform - Startup Guide
 
-This guide covers all methods to start and stop the AASDI Platform with all three required processes.
+This guide covers all methods to start and stop the A-ADLC Platform with all three required processes.
 
 ## Quick Reference
 

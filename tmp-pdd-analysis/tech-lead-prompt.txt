@@ -1,0 +1,2227 @@
+You are a Tech Lead producing a Technical Design Document (TDD) by decomposing an approved System Design Document into atomic, implementable engineering tasks.
+Your output drives the Developer agent, so it MUST be concrete, unambiguous, tightly scoped, and traceable back to specific SDD components and PDD requirements.
+
+PROJECT INFORMATION:
+- Name: Graphic Autonumber
+- Description: •	Graphics Tracker is the Primary tool for Pursuit Services graphics support on Word response documents which is used for submitting and tracking progress of graphic requests, and inventory management for future reference/reuse. It is also used for storage of completed graphic files, associated templates, and production materials
+
+•	Review RFX/project scope, design & submission requirements
+•	Consult with deal team to gather and assess client insights and win themes
+•	Discuss and brainstorm with deal team for materials to support submission/meeting
+•	Create document templates complying with client and RFX requirements/branding
+•	Leverage repository of reusable graphics/assets to create custom graphics
+•	Use the Graphics tracker to track status for word only
+•	Create graphics tracker to track status of individual graphics files
+•	Update graphics tracker where graphics modifications requested - new slide within the file is created for each modification
+•	Paste completed graphics files to Word file
+•	Use iterative review cycle to refine graphics based on input from deal team
+•	Format final documents and conduct quality check
+•	Prepare files for final print production or digital submission
+•	Confirm all final files have been uploaded for archiving/harvesting
+
+- Scope: 
+In-Scope Activities
+Activity/ Scenario	Location/ Geography	FTEs (Production FTEs)	Operating Window
+Automate the Graphic Control number using the following naming convention: Opp ID, Year and Order	All Markets	262	Windows
+
+
+- Objectives: This section to cover all relevant metrics used to gauge the process performance for all activities in scope
+
+Process Performance	
+Activity	Average Monthly Volume (6 Months)	Average Handling Time	Seasonal peak Volume if applicable	Turnaround Time	Any other SLA
+	FTEs	Additional Comments (Kick off and Cut-off time)
+Pursuit Services - Graphic Tracker Autonumbering	58050 approx.	2 mins/per graphic	N/A	2 mins/per graphic	N/A	224	N/A
+
+The above table is indicative only and actual timelines may vary from deal to deal. Also, we expect the volume handled to increase by 10-20% in FY25.
+
+- Success Criteria: 
+•	Draft Graphic request is submitted on the tracker.
+•	All Graphic must be modified in some way to be incorporated into the proposal response and must be logged for tracking purposes.
+•	A notification can be sent to the designer that a new item has been added to the tracker. 
+•	The designer updates the tracker that the Graphic is In Progress.
+•	Designer notifies the submitter that this is now completed, reviewer will review and update status of Graphic Tracker Request Item if any edits or changes needed
+•	Graphic tracker is updated to complete status once received confirmation from requestor that this can be incorporated into the proposal response and no further edits are required.
+
+
+APPROVED SYSTEM DESIGN DOCUMENT (SDD) — full JSON, treat as authoritative:
+{
+  "overview": "The Graphic Autonumber solution is a Microsoft Power Platform application (Power Apps canvas app + Power Automate flows + Dataverse + SharePoint) embedded as a tab in deal-specific Microsoft Teams channels. Primary actors are the Submitter (deal team member or Graphic Designer), the Graphic Designer (production FTE, 262 across Growth Markets/EMEA/Americas), and the Reviewer/Author-SME. The end-to-end journey: a deal team creates a Graphic Tracker for a Teams channel (capturing Opportunity ID, Deal Name, channel link), users add line items that are auto-stamped with a read-only Graphic Control Number in the format `<OppID>.<YY>.<Order>` (e.g., 000007.26.0001), notifications fire to the Designer on submission and 'Updates Needed', and to the Submitter/Author on 'Completed'. BT-confirmed scale: ~58,050 graphics/month with 10–20% FY25 growth, ≤300 concurrent users, and no peak spikes — easily absorbed by the low-code platform.",
+  "architectureStyle": {
+    "style": "low-code-platform",
+    "rationale": "BT confirmed (Q3) the solution is built on Microsoft Power Platform integrating Teams, Dataverse and SharePoint. BT (Q4) confirmed ≤300 users with no peak spikes and 'simple action items by generating numbers and sending emails — no complicated logic or APIs', so a custom microservice/event-driven backend would be over-engineering. Power Apps + Dataverse + Power Automate natively delivers the Teams-embedded UI, transactional autonumber storage, RBAC against Teams membership (Q5: 'Team and Channel dropdowns display only Teams/Channels user is part of'), and Outlook email notifications without bespoke infrastructure."
+  },
+  "components": [
+    {
+      "name": "GraphicTrackerCanvasApp",
+      "type": "ui",
+      "responsibility": "Power Apps canvas application embedded as a tab in each deal Teams channel. Renders Landing, Create Tracker, Open Existing Tracker, View Tracker, New Item, and Edit Item screens. Enforces read-only display of the Graphic Control Number and personalised 'Hello <username>' greeting.",
+      "ownedData": [
+        "UI state",
+        "Active tracker selection",
+        "User session context"
+      ],
+      "dependencies": [
+        "DataverseGraphicStore",
+        "AutonumberFlow",
+        "TeamsMembershipResolver",
+        "IdentityProvider"
+      ]
+    },
+    {
+      "name": "AutonumberFlow",
+      "type": "workflow",
+      "responsibility": "Power Automate cloud flow triggered on Dataverse row create for a GraphicRequest. Atomically allocates the next 4-digit Order within the (OppId, Year) scope and writes back the formatted GraphicControlNumber. Also triggers the New-Graphic email to the Designer.",
+      "ownedData": [
+        "GraphicControlNumber generation logic",
+        "OrderSequence allocation"
+      ],
+      "dependencies": [
+        "DataverseGraphicStore",
+        "NotificationService"
+      ]
+    },
+    {
+      "name": "StatusChangeFlow",
+      "type": "workflow",
+      "responsibility": "Power Automate flow triggered on GraphicRequest.Status modification. Routes 'Updates Needed' emails to the Designer and 'Completed' emails to the Submitter/Author. Respects the per-item 'Email status updates to Author' toggle.",
+      "ownedData": [
+        "Status transition routing rules"
+      ],
+      "dependencies": [
+        "DataverseGraphicStore",
+        "NotificationService"
+      ]
+    },
+    {
+      "name": "DataverseGraphicStore",
+      "type": "data",
+      "responsibility": "System of record for GraphicTracker, GraphicRequest, and OrderSequence tables. Provides ACID transactions, row-level security, and the autonumber column.",
+      "ownedData": [
+        "GraphicTracker",
+        "GraphicRequest",
+        "OrderSequence"
+      ],
+      "dependencies": []
+    },
+    {
+      "name": "SharePointAssetStore",
+      "type": "storage",
+      "responsibility": "Stores completed graphic files, templates, and production materials per deal. Access restricted to assigned deal users; link surfaced in the Power App to guide folder/naming conventions.",
+      "ownedData": [
+        "Graphic source files",
+        "Templates",
+        "Production materials"
+      ],
+      "dependencies": [
+        "IdentityProvider"
+      ]
+    },
+    {
+      "name": "NotificationService",
+      "type": "integration",
+      "responsibility": "Power Automate 'Send an email (V2)' Outlook connector. Renders the three PDD email templates (New Graphics, Updates Needed, Completed) and dispatches via Exchange Online.",
+      "ownedData": [
+        "Email templates"
+      ],
+      "dependencies": [
+        "IdentityProvider"
+      ]
+    },
+    {
+      "name": "TeamsMembershipResolver",
+      "type": "integration",
+      "responsibility": "Microsoft Graph / Teams connector that filters Team and Channel dropdowns to only those the current user is a member of (BT business rule from Q5).",
+      "ownedData": [],
+      "dependencies": [
+        "IdentityProvider"
+      ]
+    },
+    {
+      "name": "IdentityProvider",
+      "type": "identity",
+      "responsibility": "Azure AD / Entra ID single sign-on. Supplies the signed-in user identity used for 'Submitted by' auto-fill, the 'Hello <username>' greeting, and Teams membership checks.",
+      "ownedData": [
+        "User principal"
+      ],
+      "dependencies": []
+    }
+  ],
+  "dataModel": {
+    "entities": [
+      {
+        "name": "GraphicTracker",
+        "purpose": "One tracker per deal/opportunity, scoped to a Teams channel.",
+        "fields": [
+          {
+            "name": "TrackerId",
+            "type": "string",
+            "required": true,
+            "notes": "GUID primary key"
+          },
+          {
+            "name": "OpportunityId",
+            "type": "string",
+            "required": true,
+            "notes": "6-digit Opp ID from assignment note; immutable after creation"
+          },
+          {
+            "name": "DealName",
+            "type": "string",
+            "required": true,
+            "notes": "Free text"
+          },
+          {
+            "name": "TeamsChannelLink",
+            "type": "string",
+            "required": true,
+            "notes": "Deep link to the deal Teams channel"
+          },
+          {
+            "name": "TeamId",
+            "type": "string",
+            "required": true,
+            "notes": "Azure AD group / Team object id"
+          },
+          {
+            "name": "ChannelId",
+            "type": "string",
+            "required": true,
+            "notes": "Teams channel id"
+          },
+          {
+            "name": "CreatedBy",
+            "type": "ref",
+            "required": true,
+            "notes": "FK → SystemUser"
+          },
+          {
+            "name": "CreatedOn",
+            "type": "datetime",
+            "required": true,
+            "notes": "Auto"
+          }
+        ],
+        "primaryKey": "TrackerId",
+        "indexes": [
+          "Unique(OpportunityId)",
+          "Index(TeamId, ChannelId)"
+        ]
+      },
+      {
+        "name": "GraphicRequest",
+        "purpose": "One row per graphic line item logged in a tracker. Source of GraphicControlNumber.",
+        "fields": [
+          {
+            "name": "RequestId",
+            "type": "string",
+            "required": true,
+            "notes": "GUID primary key"
+          },
+          {
+            "name": "TrackerId",
+            "type": "ref",
+            "required": true,
+            "notes": "FK → GraphicTracker"
+          },
+          {
+            "name": "GraphicControlNumber",
+            "type": "string",
+            "required": true,
+            "notes": "Format <OppId>.<YY>.<Order> e.g., 000007.26.0001. Read-only after generation (BT Q2). Populated by AutonumberFlow."
+          },
+          {
+            "name": "Title",
+            "type": "string",
+            "required": true,
+            "notes": "e.g., 'Overview'"
+          },
+          {
+            "name": "Status",
+            "type": "enum",
+            "required": true,
+            "notes": "Values: New | In Progress | Updates Needed | Completed. Default 'New'."
+          },
+          {
+            "name": "GraphicsType",
+            "type": "enum",
+            "required": true,
+            "notes": "Basic | Medium | Complex"
+          },
+          {
+            "name": "Instructions",
+            "type": "string",
+            "required": false,
+            "notes": "Free text"
+          },
+          {
+            "name": "Section",
+            "type": "string",
+            "required": false,
+            "notes": "Section number in the Word response"
+          },
+          {
+            "name": "AuthorSmeContact",
+            "type": "string",
+            "required": false,
+            "notes": "Free text contact name"
+          },
+          {
+            "name": "SubmittedBy",
+            "type": "ref",
+            "required": true,
+            "notes": "FK → SystemUser. Auto-filled from current user."
+          },
+          {
+            "name": "GraphicDesigner",
+            "type": "ref",
+            "required": false,
+            "notes": "FK → SystemUser; assigned by deal team"
+          },
+          {
+            "name": "SourceFileControlNumber",
+            "type": "string",
+            "required": false,
+            "notes": "Optional reference to parent graphic when modifying a reusable asset"
+          },
+          {
+            "name": "EmailStatusUpdatesToAuthor",
+            "type": "bool",
+            "required": true,
+            "notes": "Toggle from Edit Item screen. Default true."
+          },
+          {
+            "name": "CreatedDate",
+            "type": "datetime",
+            "required": true,
+            "notes": "Auto"
+          },
+          {
+            "name": "ModifiedDate",
+            "type": "datetime",
+            "required": true,
+            "notes": "Auto"
+          },
+          {
+            "name": "ModifiedBy",
+            "type": "ref",
+            "required": true,
+            "notes": "FK → SystemUser; auto"
+          }
+        ],
+        "primaryKey": "RequestId",
+        "indexes": [
+          "Unique(GraphicControlNumber)",
+          "Index(TrackerId, Status)",
+          "Index(GraphicDesigner, Status)"
+        ]
+      },
+      {
+        "name": "OrderSequence",
+        "purpose": "Atomic counter that allocates the 4-digit Order portion of the autonumber, scoped per Opportunity+Year to keep numbering chronological and consecutive across designers (PDD pre-process rule).",
+        "fields": [
+          {
+            "name": "SequenceKey",
+            "type": "string",
+            "required": true,
+            "notes": "Composite: <OppId>.<YY> e.g., '000007.26'"
+          },
+          {
+            "name": "OpportunityId",
+            "type": "string",
+            "required": true,
+            "notes": "6-digit"
+          },
+          {
+            "name": "Year",
+            "type": "string",
+            "required": true,
+            "notes": "2-digit YY"
+          },
+          {
+            "name": "LastOrder",
+            "type": "int",
+            "required": true,
+            "notes": "Last allocated order, 0–9999. PDD assumption: ≤9000 graphics per deal."
+          },
+          {
+            "name": "UpdatedOn",
+            "type": "datetime",
+            "required": true,
+            "notes": "Auto"
+          }
+        ],
+        "primaryKey": "SequenceKey",
+        "indexes": [
+          "Unique(SequenceKey)"
+        ]
+      }
+    ],
+    "sequenceAllocation": "On GraphicRequest create, AutonumberFlow runs synchronously and performs an atomic 'get-or-create + increment' on the OrderSequence row whose SequenceKey = <OppId>.<YY>. The increment uses Dataverse's pessimistic update with optimistic-concurrency retry (If-Match ETag): read LastOrder, compute LastOrder+1, conditional update; on 412 Precondition Failed retry up to 5x with jitter. The new order is left-padded to 4 digits and concatenated as `<OppId>.<YY>.<Order>` into GraphicRequest.GraphicControlNumber, which carries a Unique constraint as a second-line collision guard. Scope is (OpportunityId, Year) — not global and not per-tracker — so reruns and parallel designers always pull the next consecutive number for that deal-year. The field is sealed read-only after first write (BT Q2)."
+  },
+  "screens": [
+    {
+      "id": "landing",
+      "name": "Landing Page",
+      "purpose": "Entry point inside the Teams channel tab. Lets the user choose between creating a tracker, opening an existing one, or viewing one.",
+      "primaryActors": [
+        "Submitter",
+        "Graphic Designer"
+      ],
+      "entryPoints": [
+        "Teams channel tab click"
+      ],
+      "uiElements": [
+        {
+          "element": "Header",
+          "label": "Hello <username>",
+          "behavior": "Pulled from Azure AD signed-in user; updates per session"
+        },
+        {
+          "element": "Button",
+          "label": "Create a New Graphic Tracker",
+          "behavior": "Navigates to create-tracker screen (PDD rename of 'Create a New List')"
+        },
+        {
+          "element": "Button",
+          "label": "Add/Update requests in existing Graphics Tracker",
+          "behavior": "Navigates to view-tracker screen scoped to the current Teams channel"
+        },
+        {
+          "element": "Button",
+          "label": "Open Existing Graphic Tracker",
+          "behavior": "Navigates to open-tracker screen (PDD rename of 'View an Existing List')"
+        },
+        {
+          "element": "Link",
+          "label": "SharePoint folder & naming convention guide",
+          "behavior": "Opens the deal SharePoint site in a new tab"
+        }
+      ],
+      "validation": [
+        "User must be a member of the current Team/Channel to see the tab (enforced by Teams)"
+      ],
+      "stateTransitions": [],
+      "wireframe": "+----------------------------------------------------------+\n|  GRAPHIC TRACKER AUTONUMBER          Hello Kuldeep Garud  |\n+----------------------------------------------------------+\n|                                                          |\n|   [ Create a New Graphic Tracker                      ]  |\n|                                                          |\n|   [ Add/Update requests in existing Graphics Tracker  ]  |\n|                                                          |\n|   [ Open Existing Graphic Tracker                     ]  |\n|                                                          |\n|   SharePoint folder & naming convention guide  >         |\n|                                                          |\n+----------------------------------------------------------+",
+      "referencedPddImages": [
+        1
+      ]
+    },
+    {
+      "id": "create-tracker",
+      "name": "Create a New Graphic Tracker",
+      "purpose": "Capture the Opportunity ID, Deal Name and Teams channel link that anchor a new tracker.",
+      "primaryActors": [
+        "Graphic Designer"
+      ],
+      "entryPoints": [
+        "Landing → Create a New Graphic Tracker"
+      ],
+      "uiElements": [
+        {
+          "element": "Textbox",
+          "label": "Opportunity ID",
+          "behavior": "6-digit numeric, required, immutable post-save"
+        },
+        {
+          "element": "Textbox",
+          "label": "Deal Name",
+          "behavior": "Required free text"
+        },
+        {
+          "element": "Dropdown",
+          "label": "Team",
+          "behavior": "Lists only Teams the current user belongs to (BT Q5)"
+        },
+        {
+          "element": "Dropdown",
+          "label": "Channel",
+          "behavior": "Cascades from Team; lists only channels the user belongs to"
+        },
+        {
+          "element": "Textbox (read-only)",
+          "label": "Teams Channel Link",
+          "behavior": "Auto-derived from Team+Channel selection"
+        },
+        {
+          "element": "Button",
+          "label": "Create Tracker",
+          "behavior": "Submits to Dataverse; on success navigates to view-tracker"
+        },
+        {
+          "element": "Button",
+          "label": "Cancel",
+          "behavior": "Back to landing"
+        }
+      ],
+      "validation": [
+        "Opportunity ID must be 6 numeric digits",
+        "Team & Channel dropdowns restricted to user's memberships",
+        "Opportunity ID must be unique"
+      ],
+      "stateTransitions": [],
+      "wireframe": "+----------------------------------------------------------+\n|  < Back        CREATE A NEW GRAPHIC TRACKER              |\n+----------------------------------------------------------+\n|  Opportunity ID *      [ 000007                       ]  |\n|  Deal Name *           [ Client ABC Pursuit           ]  |\n|  Team *                [ Pursuit Services    v        ]  |\n|  Channel *             [ Client-ABC          v        ]  |\n|  Teams Channel Link    [ https://teams.../Client-ABC  ]  |\n|                        (auto-filled, read-only)          |\n|                                                          |\n|                       [ Cancel ]   [ Create Tracker ]    |\n+----------------------------------------------------------+",
+      "referencedPddImages": []
+    },
+    {
+      "id": "open-tracker",
+      "name": "Open Existing Graphic Tracker",
+      "purpose": "Browse and pick from trackers the user has access to.",
+      "primaryActors": [
+        "Submitter",
+        "Graphic Designer"
+      ],
+      "entryPoints": [
+        "Landing → Open Existing Graphic Tracker"
+      ],
+      "uiElements": [
+        {
+          "element": "Search box",
+          "label": "Search by Opportunity ID or Deal Name",
+          "behavior": "Filters list in real time"
+        },
+        {
+          "element": "Sort dropdown",
+          "label": "Sort by",
+          "behavior": "Options: Created Date, Deal Name, Opportunity ID"
+        },
+        {
+          "element": "Table",
+          "label": "Tracker list",
+          "behavior": "Columns: Opp ID, Deal Name, Channel, Created By, Created On. Row click → view-tracker"
+        }
+      ],
+      "validation": [
+        "Only trackers from Teams/Channels the user belongs to are shown"
+      ],
+      "stateTransitions": [],
+      "wireframe": "+----------------------------------------------------------+\n|  < Back        OPEN EXISTING GRAPHIC TRACKER             |\n+----------------------------------------------------------+\n|  Search: [ ABC                ]   Sort by: [ Created v ] |\n+---------+----------------+----------+---------+---------+\n| Opp ID  | Deal Name      | Channel  | Creator | Created |\n+---------+----------------+----------+---------+---------+\n| 000007  | Client ABC     | Client-A | Kuldeep | 22-May  |\n| 000012  | Client XYZ     | Client-X | Deepa   | 18-May  |\n| 000031  | Client QRS     | Client-Q | Kamna   | 11-May  |\n+---------+----------------+----------+---------+---------+",
+      "referencedPddImages": []
+    },
+    {
+      "id": "view-tracker",
+      "name": "View Tracker (Graphic Request List)",
+      "purpose": "Show all graphic requests for the selected tracker; allow Add/Edit and auto-refresh.",
+      "primaryActors": [
+        "Submitter",
+        "Graphic Designer",
+        "Reviewer"
+      ],
+      "entryPoints": [
+        "Landing → Add/Update requests…",
+        "Open Existing → row click",
+        "After Create Tracker"
+      ],
+      "uiElements": [
+        {
+          "element": "Header",
+          "label": "<Deal Name> — Opp <OppId>",
+          "behavior": "Static context bar"
+        },
+        {
+          "element": "Button",
+          "label": "+ New Item",
+          "behavior": "Opens new-item screen"
+        },
+        {
+          "element": "Group-by dropdown",
+          "label": "Group by",
+          "behavior": "Status | Graphic Designer | Graphics Type"
+        },
+        {
+          "element": "Sort dropdown",
+          "label": "Sort by",
+          "behavior": "Created Date | Modified Date | Title | Status"
+        },
+        {
+          "element": "Table",
+          "label": "Graphic Requests",
+          "behavior": "Columns: Graphic Control Number (read-only), Title, Status badge, Type, Designer, Submitted By, Modified. Row click → edit-item. Auto-refresh every 30s."
+        }
+      ],
+      "validation": [],
+      "stateTransitions": [
+        "From this list, the designer changes Status: New → In Progress → Updates Needed ↔ In Progress → Completed (via edit-item screen)"
+      ],
+      "wireframe": "+--------------------------------------------------------------+\n| Client ABC Pursuit  — Opp 000007            [ + New Item ]   |\n+--------------------------------------------------------------+\n| Group by: [ Status v ]    Sort by: [ Created Date v ]        |\n+--------------------------------------------------------------+\n| Graphic Control # | Title    | Status      | Type   | Desgnr |\n+-------------------+----------+-------------+--------+--------+\n| 000007.26.0001    | Overview | In Progress | Medium | Deepa  |\n| 000007.26.0002    | Facts    | New         | Basic  | Deepa  |\n| 000007.26.0003    | Win Thm  | Completed   | Medium | Deepa  |\n+--------------------------------------------------------------+\n|                                  (auto-refresh every 30s)    |\n+--------------------------------------------------------------+",
+      "referencedPddImages": []
+    },
+    {
+      "id": "new-item",
+      "name": "New Graphic Request",
+      "purpose": "Add a new graphic line item. Control Number is generated server-side on save.",
+      "primaryActors": [
+        "Submitter",
+        "Graphic Designer"
+      ],
+      "entryPoints": [
+        "View Tracker → + New Item"
+      ],
+      "uiElements": [
+        {
+          "element": "Read-only field",
+          "label": "Graphic Control Number",
+          "behavior": "Displays 'Auto-generated on save'. After save, populated and locked."
+        },
+        {
+          "element": "Textbox",
+          "label": "Title",
+          "behavior": "Required"
+        },
+        {
+          "element": "Dropdown",
+          "label": "Graphics Type",
+          "behavior": "Basic | Medium | Complex"
+        },
+        {
+          "element": "Textarea",
+          "label": "Instructions",
+          "behavior": "Free text"
+        },
+        {
+          "element": "Textbox",
+          "label": "Section",
+          "behavior": "Optional"
+        },
+        {
+          "element": "Textbox",
+          "label": "Author/SME/Contact",
+          "behavior": "Optional"
+        },
+        {
+          "element": "Read-only field",
+          "label": "Submitted By",
+          "behavior": "Auto-filled with current user"
+        },
+        {
+          "element": "People picker",
+          "label": "Graphic Designer",
+          "behavior": "Optional, restricted to channel members"
+        },
+        {
+          "element": "Toggle",
+          "label": "Email status updates to Author",
+          "behavior": "Default ON"
+        },
+        {
+          "element": "Button",
+          "label": "Save",
+          "behavior": "Triggers AutonumberFlow → creates row → fires New Graphics email to Designer"
+        },
+        {
+          "element": "Button",
+          "label": "Cancel",
+          "behavior": "Returns to view-tracker without save"
+        }
+      ],
+      "validation": [
+        "Title required",
+        "Graphics Type required",
+        "Status defaults to 'New' (not user-editable on create)"
+      ],
+      "stateTransitions": [
+        "On Save: row Status = New; AutonumberFlow assigns Graphic Control Number"
+      ],
+      "wireframe": "+--------------------------------------------------------------+\n| < Back              NEW GRAPHIC REQUEST                       |\n+--------------------------------------------------------------+\n| Graphic Control Number   | (auto-generated on save)         |\n| Title *                  | [ Overview                     ] |\n| Graphics Type *          | [ Medium v ]                     |\n| Instructions             | [ This is demo.                ] |\n|                          | [                              ] |\n| Section                  | [ 1                            ] |\n| Author/SME/Contact       | [ Kuldeep                      ] |\n| Submitted By             | Kuldeep Garud   (read-only)      |\n| Graphic Designer         | [ Ramanujam, Deepa     v ]       |\n| Email status updates     | [ ON  ⬤  ]                       |\n|   to Author                                                  |\n|                              [ Cancel ]   [ Save ]           |\n+--------------------------------------------------------------+",
+      "referencedPddImages": [
+        1
+      ]
+    },
+    {
+      "id": "edit-item",
+      "name": "Edit Graphic Request",
+      "purpose": "Designer/Reviewer updates status and metadata for an existing item; Control Number is read-only.",
+      "primaryActors": [
+        "Graphic Designer",
+        "Reviewer"
+      ],
+      "entryPoints": [
+        "View Tracker → row click"
+      ],
+      "uiElements": [
+        {
+          "element": "Read-only field",
+          "label": "Graphic Control Number",
+          "behavior": "Locked, copied to clipboard on click (per BT Q2)"
+        },
+        {
+          "element": "Dropdown",
+          "label": "Status",
+          "behavior": "New | In Progress | Updates Needed | Completed. Each change fires StatusChangeFlow."
+        },
+        {
+          "element": "Textbox",
+          "label": "Source File Control Number",
+          "behavior": "Optional. Pattern <OppId>.<YY>.<Order> if provided."
+        },
+        {
+          "element": "Toggle",
+          "label": "Email status updates to Author",
+          "behavior": "On/Off; controls whether StatusChangeFlow emails the Author/SME"
+        },
+        {
+          "element": "Editable fields",
+          "label": "Title, Type, Instructions, Section, Author/SME/Contact, Designer",
+          "behavior": "All editable except Graphic Control Number and Submitted By"
+        },
+        {
+          "element": "Button",
+          "label": "Save",
+          "behavior": "Persists changes; triggers StatusChangeFlow if Status changed"
+        }
+      ],
+      "validation": [
+        "Graphic Control Number cannot be modified (BT Q2)",
+        "Source File Control Number must match the autonumber pattern when provided"
+      ],
+      "stateTransitions": [
+        "In Progress ← New (Designer accepts)",
+        "Updates Needed ← In Progress (Reviewer requests changes)",
+        "In Progress ← Updates Needed (Designer reworks)",
+        "Completed ← In Progress (Designer finishes)"
+      ],
+      "wireframe": "+--------------------------------------------------------------+\n| < Back        EDIT GRAPHIC REQUEST    000007.26.0001 (R/O)   |\n+--------------------------------------------------------------+\n| Title                    | [ Overview                     ] |\n| Status *                 | [ In Progress      v ]            |\n| Graphics Type            | [ Medium v ]                     |\n| Instructions             | [ This is demo.                ] |\n| Section                  | [ 1                            ] |\n| Source File Ctrl Number  | [ 87654321.24.0023             ] |\n| Author/SME/Contact       | [ Kuldeep                      ] |\n| Submitted By             | Kuldeep Garud   (read-only)      |\n| Graphic Designer         | [ Ramanujam, Deepa     v ]       |\n| Email status updates     | [ ON  ⬤  ]                       |\n|   to Author                                                  |\n|                              [ Cancel ]   [ Save ]           |\n+--------------------------------------------------------------+",
+      "referencedPddImages": []
+    }
+  ],
+  "userFlows": [
+    {
+      "name": "New Graphic Request Submission & Autonumber Generation",
+      "actor": "Submitter",
+      "steps": [
+        "1. Submitter opens the Graphic Tracker tab in the deal Teams channel — GraphicTrackerCanvasApp loads with 'Hello <username>'.",
+        "2. Submitter clicks 'Add/Update requests in existing Graphics Tracker' and lands on the view-tracker screen for the deal.",
+        "3. Submitter clicks '+ New Item' → new-item screen renders. Submitted By auto-fills from IdentityProvider.",
+        "4. Submitter fills Title, Graphics Type, Instructions, Section, Author/SME, Designer, leaves 'Email status updates to Author' = ON, and clicks Save.",
+        "5. GraphicTrackerCanvasApp writes a GraphicRequest row to DataverseGraphicStore with Status='New' and GraphicControlNumber=blank.",
+        "6. AutonumberFlow fires on row-create, atomically increments OrderSequence for key '<OppId>.<YY>', formats '<OppId>.<YY>.<NNNN>' and updates the GraphicRequest row.",
+        "7. AutonumberFlow then calls NotificationService to send the 'New Graphics for Proposal' email to the Graphic Designer.",
+        "8. GraphicTrackerCanvasApp auto-refreshes; the new line item appears in view-tracker with the read-only Graphic Control Number populated."
+      ],
+      "asciiSequence": "Submitter           CanvasApp          Dataverse           AutonumberFlow      NotificationSvc     Designer\n   |                    |                   |                       |                    |               |\n   |--Open Teams tab--->|                   |                       |                    |               |\n   |                    |--auth (Entra)---->|                       |                    |               |\n   |<--Hello <user>-----|                   |                       |                    |               |\n   |--+ New Item------->|                   |                       |                    |               |\n   |--Fill & Save------>|                   |                       |                    |               |\n   |                    |--Create Row------>|                       |                    |               |\n   |                    |                   |--Row.Created event--->|                    |               |\n   |                    |                   |<--Read OrderSeq-------|                    |               |\n   |                    |                   |--Increment (ETag)---->|                    |               |\n   |                    |                   |<--Patch GraphReq------|                    |               |\n   |                    |                   |                       |--Send email------->|               |\n   |                    |                   |                       |                    |--Inbox------->|\n   |                    |<--Auto-refresh----|                       |                    |               |\n   |<--CtrlNum shown----|                   |                       |                    |               |"
+    },
+    {
+      "name": "Status Transition: Updates Needed → Designer Email",
+      "actor": "Reviewer",
+      "steps": [
+        "1. Reviewer opens the tracker and selects an existing item → edit-item screen.",
+        "2. Reviewer changes Status from 'In Progress' to 'Updates Needed' and clicks Save.",
+        "3. GraphicTrackerCanvasApp updates the GraphicRequest row in DataverseGraphicStore.",
+        "4. StatusChangeFlow fires on the Status field change, builds the 'Updates Needed for Graphics' email (including Graphic Control Number and Submitted By) and dispatches via NotificationService.",
+        "5. The Graphic Designer receives the email; if 'Email status updates to Author' is ON, the Author/SME also receives a status update."
+      ],
+      "asciiSequence": "Reviewer            CanvasApp          Dataverse           StatusChangeFlow    NotificationSvc     Designer/Author\n   |--Edit Item------->|                   |                       |                    |               |\n   |--Status=Updates-->|                   |                       |                    |               |\n   |--Save------------>|                   |                       |                    |               |\n   |                   |--Update Row------>|                       |                    |               |\n   |                   |                   |--Status changed------>|                    |               |\n   |                   |                   |                       |--Render template-->|               |\n   |                   |                   |                       |                    |--Email------->|"
+    },
+    {
+      "name": "Completion Notification to Submitter",
+      "actor": "Graphic Designer",
+      "steps": [
+        "1. Designer opens the item, sets Status='Completed', Save.",
+        "2. DataverseGraphicStore persists the change.",
+        "3. StatusChangeFlow detects Completed transition, fetches all completed-row metadata, and renders the 'Graphics Completed for Proposal' email.",
+        "4. NotificationService emails the Submitter; Author/SME receives a copy if the per-item toggle is ON."
+      ],
+      "asciiSequence": "Designer            CanvasApp          Dataverse           StatusChangeFlow    NotificationSvc     Submitter\n   |--Status=Complete->|                   |                       |                    |               |\n   |--Save------------>|--Update Row------>|                       |                    |               |\n   |                   |                   |--Status changed------>|                    |               |\n   |                   |                   |                       |--Render Completed->|               |\n   |                   |                   |                       |                    |--Email------->|"
+    }
+  ],
+  "techStack": {
+    "frontend": "Power Apps canvas app embedded as a Teams tab — BT (Q3) confirmed Power Platform; canvas app gives pixel-level control of the PDD-specified Accenture-themed UI and the Hello-username/landing/three-option layout.",
+    "backend": "Power Automate cloud flows (AutonumberFlow, StatusChangeFlow) — BT (Q4) said the logic is simple (generate numbers, send emails); Power Automate eliminates custom service code.",
+    "database": "Microsoft Dataverse for GraphicTracker / GraphicRequest / OrderSequence (ACID, ETag concurrency, RLS); SharePoint Online for finished-graphic file storage and templates per the PDD.",
+    "infrastructure": "Microsoft 365 tenant (Accenture) — no separate hosting needed; flows run on shared Power Platform capacity, well within 300-user / ~58k-events/month limits.",
+    "identity": "Microsoft Entra ID (Azure AD) SSO with Teams + Power Apps; Teams membership drives the Team/Channel dropdown filter and tab access."
+  },
+  "integrations": [
+    {
+      "system": "Microsoft Teams",
+      "direction": "bidirectional",
+      "purpose": "Host the Power App as a channel tab; resolve user's Team/Channel memberships for dropdowns.",
+      "protocol": "platform connector",
+      "payloadSummary": "Teams tab manifest; Graph calls returning the user's Team and Channel lists."
+    },
+    {
+      "system": "Microsoft Dataverse",
+      "direction": "bidirectional",
+      "purpose": "Persist trackers, requests, and the OrderSequence counter; raise row-create/row-update events to flows.",
+      "protocol": "platform connector",
+      "payloadSummary": "CRUD on GraphicTracker / GraphicRequest / OrderSequence rows; change-data events."
+    },
+    {
+      "system": "SharePoint Online",
+      "direction": "outbound",
+      "purpose": "Provide the link in the canvas app to deal-specific folders and the naming-convention guide; store completed graphic files.",
+      "protocol": "platform connector",
+      "payloadSummary": "Document library URLs; optional file metadata reads."
+    },
+    {
+      "system": "Exchange Online (Outlook)",
+      "direction": "outbound",
+      "purpose": "Send the three notification emails (New Graphics, Updates Needed, Completed).",
+      "protocol": "platform connector",
+      "payloadSummary": "HTML email body with the PDD-specified tables and subjects."
+    },
+    {
+      "system": "Microsoft Entra ID",
+      "direction": "inbound",
+      "purpose": "Authenticate the user and supply identity (display name, UPN) used for 'Submitted By' and Hello banner.",
+      "protocol": "platform connector",
+      "payloadSummary": "OAuth/OIDC tokens, /me profile."
+    }
+  ],
+  "notifications": [
+    {
+      "trigger": "GraphicRequest created (Status='New') — fired by AutonumberFlow after the control number is assigned.",
+      "channel": "email",
+      "recipients": [
+        "Graphic Designer"
+      ],
+      "subjectTemplate": "New Graphics for Proposal - [Opportunity Name]",
+      "bodyTemplate": "Dear Graphic Designer,\n\nA new Graphic request has been submitted.\n\n| ID | Title | Status | Graphics Type | Instructions | Section | Author/SME/Contact | Submitted By | Graphic Designer |\n|----|-------|--------|----------------|---------------|---------|---------------------|---------------|-------------------|\n| 1  | Overview | New | Medium | This is demo. | 1 | Kuldeep | Kuldeep Garud | Ramanujam, Deepa |\n| 2  | Facts    | New | Basic  | This is demo. | 3 | Kuldeep | Kuldeep Garud | Ramanujam, Deepa |\n\nIf you have any questions, please feel free to reach out to the Submitter.",
+      "userOptOut": "Per-item toggle 'Email status updates to Author' on edit-item / new-item screen controls Author copies; Designer notification is mandatory for the autonumbering completion signal per BT Q7."
+    },
+    {
+      "trigger": "GraphicRequest.Status changed to 'Updates Needed' — fired by StatusChangeFlow.",
+      "channel": "email",
+      "recipients": [
+        "Graphic Designer"
+      ],
+      "subjectTemplate": "Updates Needed for Graphics - [Opportunity Name]",
+      "bodyTemplate": "Dear Graphic Designer,\n\nUpdates needed request has been submitted for the below Graphic request\n\n| ID | Title | Status | Graphics Type | Instructions | Section | Graphic Control Number | Submitted By | Graphic Designer |\n|----|-------|--------|----------------|---------------|---------|--------------------------|---------------|-------------------|\n| 1  | Overview | Updates Needed | Medium | This is demo. | 1 | 12345678.25.0001 | Kuldeep Garud | Ramanujam, Deepa |\n| 2  | Facts    | Updates Needed | Basic  | This is demo. | 3 | 12345678.25.0002 | Kuldeep Garud | Ramanujam, Deepa |\n\nIf you have any questions, please feel free to reach out to the Submitter.",
+      "userOptOut": "Edit-item screen → 'Email status updates to Author' toggle."
+    },
+    {
+      "trigger": "GraphicRequest.Status changed to 'Completed' — fired by StatusChangeFlow.",
+      "channel": "email",
+      "recipients": [
+        "Submitter",
+        "Author/SME (if toggle ON)"
+      ],
+      "subjectTemplate": "Graphics Completed for Proposal - [Opportunity Name]",
+      "bodyTemplate": "Dear [Submitted By],\n\nWe are pleased to inform you that the graphics for your proposal have been completed. Below are the details of the completed graphics:\n\n| ID | Title | Graphic Control Number | Status | Graphics Type | Instructions | Source File Control Number | Section | Author/SME/Contact | Submitted By | Graphic Designer | Created Date | Modified Date | Modified by |\n|----|-------|--------------------------|--------|----------------|---------------|------------------------------|---------|---------------------|---------------|-------------------|---------------|----------------|---------------|\n| 1  | Overview | 12345678.25.0001 | Completed | Medium | This is demo. | 87654321.24.0023 | 1 | Kuldeep | Kuldeep Garud | Ramanujam, Deepa | default | default | Kuldeep |\n| 2  | Facts    | 12345678.25.0002 | Completed | Basic  | This is demo. | - | 3 | Kuldeep | Kuldeep Garud | Ramanujam, Deepa | default | default | Kuldeep |\n\nIf you have any questions or need further assistance, please feel free to reach out to the graphic design team.\nIf you require any modifications to the completed graphics, you can submit an Updates Needed request. Please provide the necessary details and instructions for the modifications.\n\nThank you for your submission and collaboration.\n\nNote: This is an automatically generated email, please do not reply.",
+      "userOptOut": "Edit-item screen → 'Email status updates to Author' toggle suppresses the Author/SME copy; Submitter receives the email regardless."
+    }
+  ],
+  "nonFunctional": {
+    "scalability": "BT Q4: ≤300 concurrent users, ~58,050 requests/month (~2,640/business day, ~330/business hour, ~5.5/minute peak). With FY25 growth of 10–20% the upper bound is ~70,000/month — still well within standard Power Platform per-flow throughput (5,000 runs/5min) and Dataverse API limits. OrderSequence is the only contended row; scoping by (OppId, Year) means contention is per-deal-per-year, typically ≤9000 lifetime per BT assumption, so write-rate per key is negligible.",
+    "security": "Entra ID SSO for all users. RBAC: tab visibility requires Teams channel membership; Team/Channel dropdowns filtered to memberships (BT Q5). Dataverse row-level security on GraphicTracker by TeamId; GraphicRequest inherits via TrackerId. GraphicControlNumber is field-level read-only after first write (BT Q2) — enforced at the canvas-app form, the Power Automate write rule, and a Dataverse plugin/business rule to block any direct API edit. SharePoint link surfaced in the app but actual file access governed by SharePoint permissions per deal (PDD).",
+    "performance": "Target: autonumber assignment + UI confirmation ≤2s p95; email dispatch ≤30s p95. Synchronous Dataverse upsert + ETag retry on OrderSequence keeps end-to-end under 1s in steady state. PDD AHT of 2 minutes is dominated by the human design step, not autonumbering.",
+    "reliability": "Target availability 99.5% (aligned with Microsoft 365 SLA). Failure mode BT named explicitly (Q5): Power Automate platform outage. Mitigations: (a) AutonumberFlow runs with retry policy (exponential, 4 retries) and a dead-letter queue; (b) if the flow does not stamp a number within 60s, the canvas app shows an inline banner 'Control number pending — will appear automatically' so the row is still saved and the number backfills when the platform recovers; (c) unique constraint on GraphicControlNumber guards against double-stamp during retry.",
+    "observability": "BT Q6 said audit/logging is not required. Design therefore relies on the built-in Dataverse audit log (enabled on GraphicRequest only — Status, GraphicControlNumber fields) and Power Automate run history for the two flows. No custom dashboard built; we flag this as a residual risk below."
+  },
+  "pddVisualReferences": [
+    {
+      "imageIndex": 1,
+      "imageFilename": "image-001.png",
+      "whatItShows": "Sample Graphic Control Number illustrating the naming convention OppID.YY.Order (e.g., 000007.26.0001) referenced in PDD section 6.4.1.",
+      "howUsedInDesign": "Drives the GraphicRequest.GraphicControlNumber field format, the OrderSequence allocation key (<OppId>.<YY>), the read-only display on the new-item and edit-item screens, and the validation regex on Source File Control Number."
+    }
+  ],
+  "risks": [
+    {
+      "risk": "Autonumber collision under concurrent designers despite optimistic-concurrency retries — could break the 'consecutive in chronological order' rule.",
+      "relatedBaGap": "Q1",
+      "severity": "medium",
+      "mitigation": "Single OrderSequence row per (OppId, Year) with Dataverse ETag-based optimistic locking, 5x retry with jitter, plus Unique constraint on GraphicControlNumber as a backstop; any duplicate raises a flow alert."
+    },
+    {
+      "risk": "Modified/revised graphics: BT (Q2) said the number is read-only and 'auto populates everywhere'. No versioning means lineage between a parent and a revised file is not tracked — could complicate harvesting/reuse.",
+      "relatedBaGap": "Q2",
+      "severity": "low",
+      "mitigation": "Use the optional 'Source File Control Number' field on edit-item to capture the parent control number when a graphic is modified from a reusable asset; surface it in the Completed email (already shown in PDD template)."
+    },
+    {
+      "risk": "Power Automate platform outage stops autonumber stamping (the one failure mode BT explicitly named in Q5).",
+      "relatedBaGap": "Q5",
+      "severity": "high",
+      "mitigation": "Row save is decoupled from autonumber stamping: the GraphicRequest is persisted with Status='New' and a pending placeholder; flow retries on platform recovery and back-fills the number; user sees a 'Control number pending' banner — no data loss."
+    },
+    {
+      "risk": "No audit trail or RBAC reporting (BT Q6 declined). For a 262-FTE, multi-market process, lack of audit logs may surface later as a compliance/harvesting gap.",
+      "relatedBaGap": "Q6",
+      "severity": "medium",
+      "mitigation": "Enable Dataverse field-level auditing on GraphicRequest.Status and GraphicRequest.GraphicControlNumber at zero build cost — provides a recoverable trail without a custom dashboard, and can be exposed later via a Power BI report if requirements change."
+    },
+    {
+      "risk": "Per-deal cap assumption (≤9000 graphics) gives only 1000 headroom against the 4-digit Order field — a single mega-deal could exhaust the sequence.",
+      "relatedBaGap": "Q1",
+      "severity": "low",
+      "mitigation": "Add a soft alert on OrderSequence.LastOrder ≥ 9000 to notify the BT lead; field width can be widened to 5 digits with a backwards-compatible migration if breached."
+    },
+    {
+      "risk": "Notification scope ambiguity — BT Q7 confirmed only the Completion email template, while the PDD also defines New Graphics and Updates Needed templates. Risk of building beyond/below BT's stated scope.",
+      "relatedBaGap": "Q7",
+      "severity": "low",
+      "mitigation": "All three PDD templates implemented in StatusChangeFlow/AutonumberFlow as designed; per-item 'Email status updates to Author' toggle gives the user the on/off control BT described. Confirm with BT in TDD review before build."
+    }
+  ]
+}
+
+PDD CONTENT (extracted text — use to fill in requirement details the SDD references but does not repeat):
+https://ts.accenture.com/sites/GraphicTrackerRD/Shared%20Documents/Forms/AllItems.aspx
+
+https://ts.accenture.com/sites/GraphicTrackerRD-ChannelVinoth/Shared%20Documents/Forms/AllItems.aspx
+
+Process:
+
+Pursuit Services
+
+Issue:
+
+Graphic Tracker Autonumbering
+
+
+
+
+
+Name
+
+Title
+
+Organization 
+
+Email 
+
+Deepa Ramanujam
+
+BT Lead
+
+Accenture
+
+deepa.ramanujam@accenture.com
+
+Kamna Verma
+
+BT Lead
+
+Accenture
+
+kamna.verma@accenture.com
+
+Vinoth Ezhilan Manian
+
+Tech Arch Assoc Manager
+
+Accenture
+
+vinoth.e.manian@accenture.com
+
+Karthik Ballal
+
+App Development Specialist
+
+Accenture
+
+karthik.ballal@accenture.com
+
+Michele L Johnson
+
+Pursuit Services
+
+Accenture
+
+michele.l.johnson@accenture.com
+
+Daisy R Landas
+
+Pursuit Services
+
+Accenture
+
+daisy.r.landas@accenture.com
+
+Kuldeep Garud
+
+Pursuit Services
+
+Accenture 
+
+kuldeep.garud@accenture.com
+
+
+
+Document Revision History
+
+Version
+
+Description
+
+Author
+
+Revision date
+
+Approver
+
+Approval Date
+
+1.0
+
+Requirements for Graphic Tracker Autonumbering
+
+Deepa Ramanujam
+
+3rd Sep 24
+
+
+
+
+
+1.1
+
+Additional landing page requirement
+
+Deepa Ramanujam
+
+10th Jan 25
+
+
+
+
+
+1.3
+
+Additional notification information and templates
+
+Deepa Ramanujam
+
+22nd Jan 25 
+
+
+
+
+
+1.4
+
+Requirement enhancement for Graphic Tracker Autonumbering
+
+Kamna Verma
+
+27th Feb 25
+
+
+
+
+
+
+
+
+
+Template Revision History
+
+Version
+
+Description
+
+Author
+
+Revision date
+
+Approver
+
+Approval Date
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Compliance to General Data Protection Regulation (GDPR)
+
+The Process Definitions have been documented to comply with the General Data Protection Regulations. 
+
+
+
+
+
+Table of Contents
+
+1	Introduction	5
+
+1.1	Purpose	5
+
+1.2	Process Overview	5
+
+2	Scope	5
+
+3	Anchor Applications	6
+
+4	Process Performance	7
+
+5	General Data Protection Regulations	7
+
+6	Process	7
+
+6.1	Process Inputs	7
+
+6.2	Pre-Process steps	8
+
+6.3	Post-Process steps	8
+
+6.4	Process Map	8
+
+6.4.1	Detailed Process Maps - Sub-process/Scenario 1	8
+
+6.4.2	Detailed Process Maps - Sub-process/Scenario 2	10
+
+7	Assumptions and Risks	11
+
+
+
+Introduction
+
+Overview and Context
+
+Pursuit Services Graphic Designers (GDs) create engaging visual concepts and supporting graphics to illustrate key sales messages, data, and differentiators in print and digital pursuit deliverables with a consistent and compelling style.
+
+ 
+
+Purpose
+
+
+
+The scope of this automation is to auto generate the Graphic Control number. 
+
+
+
+Process Overview
+
+Graphics Tracker is the Primary tool for Pursuit Services graphics support on Word response documents which is used for submitting and tracking progress of graphic requests, and inventory management for future reference/reuse. It is also used for storage of completed graphic files, associated templates, and production materials
+
+
+
+Review RFX/project scope, design & submission requirements
+
+Consult with deal team to gather and assess client insights and win themes
+
+Discuss and brainstorm with deal team for materials to support submission/meeting
+
+Create document templates complying with client and RFX requirements/branding
+
+Leverage repository of reusable graphics/assets to create custom graphics
+
+Use the Graphics tracker to track status for word only
+
+Create graphics tracker to track status of individual graphics files
+
+Update graphics tracker where graphics modifications requested - new slide within the file is created for each modification
+
+Paste completed graphics files to Word file
+
+Use iterative review cycle to refine graphics based on input from deal team
+
+Format final documents and conduct quality check
+
+Prepare files for final print production or digital submission
+
+Confirm all final files have been uploaded for archiving/harvesting
+
+Support hours:
+
+
+
+Graphic Design Support is provided during regular business hours across all markets (Asia Pacific, EMEA and Americas) as specified in the below table.
+
+Operating Window/Shift Split
+
+Home Market Location
+
+Local Country Timing
+
+FTEs
+
+Growth Markets
+
+09:00 – 21:00 (India Time)
+
+09:00 – 19:00 (Other countries, local time)
+
+262
+
+Europe
+
+09:00 – 19:00
+
+North America
+
+09:00 – 19:00
+
+
+
+Scope
+
+
+
+In-Scope Activities
+
+Activity/ Scenario
+
+Location/ Geography
+
+FTEs (Production FTEs)
+
+Operating Window
+
+Automate the Graphic Control number using the following naming convention: Opp ID, Year and Order
+
+All Markets
+
+262
+
+Windows
+
+
+
+Out of Scope Activities
+
+Activity/ Scenario/
+
+Location/ Geography
+
+FTEs (Production FTEs)
+
+Reasons for exclusion
+
+Mac OS
+
+All Markets
+
+N/A
+
+N/A
+
+
+
+
+
+Anchor Applications
+
+This section is to provide a list of Applications to be used in the Solution (To add Env specific from PAD)
+
+
+
+Anchor Applications
+
+
+
+Application name with Version
+
+Ownership (External/ Internal)
+
+Type of Application (Web, Windows, Citrix, Mainframe, etc.)
+
+Credentials required for Robot?
+
+Use of CAPTCHA
+
+Activities the Applications is used in
+
+Application Availability (Window)
+
+Inflight projects/version upgrades planned within 3 months
+
+Microsoft Teams
+
+Internal
+
+Macro enabled
+
+Designers and other Graphic Tracker users need to have Member access granted in MS Teams.
+
+No
+
+Automation of Graphic Control number
+
+Windows
+
+Not Applicable
+
+
+
+Process Performance
+
+This section to cover all relevant metrics used to gauge the process performance for all activities in scope
+
+
+
+Process Performance
+
+
+
+Activity
+
+Average Monthly Volume (6 Months)
+
+Average Handling Time
+
+Seasonal peak Volume if applicable
+
+Turnaround Time
+
+Any other SLA
+
+
+
+FTEs
+
+Additional Comments (Kick off and Cut-off time)
+
+Pursuit Services - Graphic Tracker Autonumbering
+
+58050 approx.
+
+2 mins/per graphic
+
+N/A
+
+2 mins/per graphic
+
+N/A
+
+224
+
+N/A
+
+
+
+The above table is indicative only and actual timelines may vary from deal to deal. Also, we expect the volume handled to increase by 10-20% in FY25.
+
+
+
+General Data Protection Regulations
+
+
+
+Please mention details of any Data Protection/regulatory requirements that the process is required to comply with. Add Personal and Sensitive Personal Data (PD/SPD) specific to the Process documented: 
+
+
+
+Not applicable, this automation does not involve any PII. 
+
+Process
+
+Process Inputs
+
+
+
+Automated Control Number prepopulated on adding new line items to the Graphic Tracker.   
+
+
+
+Process Inputs
+
+Activity
+
+Source (Workflow Application. Emails, etc.)
+
+Structured (Y/N)
+
+Format (Attachment samples, Excel, PDF, etc.)
+
+Automation Feasibility (Y/N)
+
+E-Form required
+
+Graphic Control Number
+
+Teams
+
+Y
+
+Teams Form
+
+Y
+
+No
+
+
+
+Pre-Process Steps:
+
+
+
+The Graphic tracker will be enabled on individual teams’ channels for the deal supported by the Graphic Designer. 
+
+Multiple designers can be supporting one deal and hence will be leveraging this tracker which is placed in the common team’s folder. 
+
+All Graphic must be modified in some way to be incorporated into the proposal response and must be logged for tracking purposes.
+
+Consecutive Graphic control number should be generated even if multiple designers are creating it, this should be based on the last created number. 
+
+Post-Process steps
+
+
+
+Graphic control number is created when the submitter or the graphic designer creates an entry on the Graphic Tracker which will help reference and identify graphics created by Pursuit Services
+
+Process Steps 
+
+
+
+Draft Graphic request is submitted on the tracker.
+
+All Graphic must be modified in some way to be incorporated into the proposal response and must be logged for tracking purposes.
+
+A notification can be sent to the designer that a new item has been added to the tracker. 
+
+The designer updates the tracker that the Graphic is In Progress.
+
+Designer notifies the submitter that this is now completed, reviewer will review and update status of Graphic Tracker Request Item if any edits or changes needed
+
+Graphic tracker is updated to complete status once received confirmation from requestor that this can be incorporated into the proposal response and no further edits are required.
+
+
+
+Detailed Process Maps - Sub-process/Scenario 1
+
+ Graphic Tracker is created for all word requests.
+
+Detailed Process Flow
+
+
+
+Location of the Tracker
+
+The Graphic tracker is placed in the deal specific Teams channel 
+
+The PowerApp solution needs to be available as a tab at the top of the Teams channel
+
+All deal team members will have access to this Teams channel
+
+
+
+Tracker is a list available in the Graphic Teams Channel.
+
+Enabling a PowerApp solution 
+
+The theme to be aligned in Accenture colour. (Shared sample colour with the developer)
+
+PowerApp Landing page to have three options
+
+Create a new Graphics Tracker
+
+Add/Update requests in existing Graphics Tracker
+
+View existing Graphics Tracker
+
+Graphic Designer updates the Opportunity ID, Deal Name and Teams channel link which would be a perquisite to trigger this automation.
+
+The control number naming using the following convention: Opp ID, Year and Order
+
+Opportunity ID number of the project from the assignment note.
+
+Year is a two-digit representation of the calendar year of the response submission
+
+Order is the unique graphic number generated by the Graphics Tracker. This number will always be four numeric characters (e.g., 0001, 0999)
+
+Sample Graphic Control Number - 
+
+Rename the icons as follows:
+
+Change "Create a New List" to "Create a New Graphic Tracker"
+
+Change "View an Existing List" to "Open Existing Graphic Tracker" 
+
+Remove the option to delete items from the tool.
+
+Add an option to create a new item in the tool.
+
+The "Submitted by" field should auto-fill with the submitter’s name.s
+
+The tool should have the ability to sort and group by status.
+
+Add a Sort by section to the tool.
+
+Provide an option to select Yes or No for receiving notifications.
+
+Currently, the tool refreshes manually. The system should refresh it automatically.
+
+Provide a SharePoint site link to guide users on folder locations and standard naming conventions. The graphic control name should be the file name.
+
+Restrict access to users who are not working on the deal. Only assigned users should have access. (The dropdown should appear only when access is enabled.)
+
+The Graphic Tracker will be accessible to everyone in Accenture, but the SharePoint link will be restricted. Users will only gain access to deal details once they are assigned to the deal. 
+
+Multiple users to be use the tool simultaneously. Have a “Hello username” at the top.
+
+
+
+Detailed Requirements: Editing Function
+
+
+
+The automated control number should be pre-populated on the Graphic Tracker. 
+
+Graphic Designer should not be able to change the Unique ID that is autogenerated. 
+
+Detailed Requirements: Formatting Function
+
+Not applicable 
+
+Detailed Requirements: Tool Requirement
+
+
+
+MultiUser support for the tool
+
+As is: Graphic Control number is manually created  
+
+To be: Automated Graphic Control number.  
+
+
+
+MS Office Compatibility
+
+As is: Automation on teams. 
+
+To be: Automation on teams.
+
+
+
+General Macro Requirements 
+
+
+
+Tool stability:  Not Applicable
+
+Sound Notification: Not Applicable
+
+Stop Macro – Non availability of Opportunity ID details will impact the Control Number creation
+
+Track Change – Not applicable
+
+Email Notification –Applicable (Graphic Designer should be able to turn this notification option on or off)
+
+When a Graphic is submitted a notification must be sent to the Graphic Designer 
+
+
+
+******************************************************************
+
+Email template
+
+Subject: New Graphics for Proposal - [Opportunity Name]
+
+
+
+To
+
+Graphic Designer
+
+
+
+Dear Graphic Designer,
+
+
+
+A new Graphic request has been submitted.
+
+
+
+ID
+
+Title
+
+Status
+
+Graphics Type
+
+Instructions
+
+Section
+
+Author/SME/Contact
+
+Submitted By
+
+Graphic Designer
+
+1
+
+Overview
+
+New
+
+Medium
+
+This is demo.
+
+1
+
+Kuldeep
+
+Kuldeep Garud 
+
+Ramanujam, Deepa 
+
+2
+
+Facts
+
+New
+
+Basic
+
+This is demo.
+
+3
+
+Kuldeep
+
+Kuldeep Garud 
+
+Ramanujam, Deepa 
+
+
+
+If you have any questions, please feel free to reach out to the Submitter.
+
+******************************************************************
+
+When Progress changes to “Updates Needed” send email to Graphic Designer
+
+
+
+Email template
+
+Subject: Updates Needed for Graphics - [Opportunity Name]
+
+
+
+To
+
+Graphic Designer
+
+
+
+Dear Graphic Designer,
+
+
+
+Updates needed request has been submitted for the below Graphic request 
+
+
+
+ID
+
+Title
+
+Status
+
+Graphics Type
+
+Instructions
+
+Section
+
+Graphic Control Number
+
+Submitted By
+
+Graphic Designer
+
+1
+
+Overview
+
+Updates Needed
+
+Medium
+
+This is demo.
+
+1
+
+12345678.25.0001
+
+Kuldeep Garud 
+
+Ramanujam, Deepa 
+
+2
+
+Facts
+
+Updates Needed
+
+Basic
+
+This is demo.
+
+3
+
+12345678.25.0002
+
+Kuldeep Garud 
+
+Ramanujam, Deepa 
+
+
+
+If you have any questions, please feel free to reach out to the Submitter.
+
+******************************************************************
+
+
+
+
+
+Completion Comment – Applicable
+
+When Progress changes to “Completed” send email to “Submitted by”
+
+
+
+To,
+
+Submitter 
+
+Email template
+
+Subject: Graphics Completed for Proposal - [Opportunity Name]
+
+
+
+Dear [Submitted By],
+
+
+
+We are pleased to inform you that the graphics for your proposal have been completed. Below are the details of the completed graphics:
+
+
+
+ID
+
+Title
+
+Graphic Control Number
+
+Status
+
+Graphics Type
+
+Instructions
+
+Source File Control Number
+
+Section
+
+Author/SME/Contact
+
+Submitted By
+
+Graphic Designer
+
+Created
+
+Date
+
+Modified
+
+Date
+
+Modified by
+
+1
+
+Overview
+
+12345678.25.0001
+
+Completed
+
+Medium
+
+This is demo.
+
+87654321.24.0023
+
+1
+
+Kuldeep
+
+Kuldeep Garud 
+
+Ramanujam, Deepa 
+
+Default format
+
+Default format
+
+Kuldeep
+
+2
+
+Facts
+
+12345678.25.0002
+
+Completed
+
+Basic
+
+This is demo.
+
+-
+
+3
+
+Kuldeep
+
+Kuldeep Garud 
+
+Ramanujam, Deepa 
+
+Default format
+
+Default format
+
+Kuldeep
+
+
+
+If you have any questions or need further assistance, please feel free to reach out to the graphic design team.
+
+If you require any modifications to the completed graphics, you can submit an Updates Needed request. Please provide the necessary details and instructions for the modifications.
+
+
+
+Thank you for your submission and collaboration.
+
+
+
+
+
+6.4.6. Assumptions and Risks
+
+
+
+Opportunity ID details are available.
+
+The Control numbers will be increased in chronological order.
+
+The Overall Graphics per deal to not exceed 9000.
+
+
+
+Annexure A — Clarifications from BA Review
+
+The following questions were raised by the Business Analyst (BA) Agent during the PDD review. Each question has been answered by the Business Transformation (BT) team and the answers form part of the approved scope for downstream Architecture, TDD and Development work.
+
+Total Questions Raised
+
+7
+
+Total Questions Answered
+
+7
+
+Outcome
+
+All questions answered — PDD approved
+
+
+
+Q1. What is the exact format and structure of the autonumber (e.g., delimiter, padding, character length for Opp ID/Year/Order)? Should the 'Order' be sequential per opportunity, per y…
+
+Category
+
+Business Logic
+
+Complexity
+
+HIGH
+
+BA Question
+
+What is the exact format and structure of the autonumber (e.g., delimiter, padding, character length for Opp ID/Year/Order)? Should the 'Order' be sequential per opportunity, per year, or globally, and how should collisions or re-runs be prevented when graphics are modified (where the PDD states 'a new slide within the file is created for each modification')?
+
+BT Response
+
+Order is the unique graphic number generated by the Graphics Tracker. This number will always be four numeric characters (e.g., 0001, 0999) Title  : ABC	Graphic Control Number : 000007.26.0001 000007 is opportunity ID, 26 is the year like 2026, 0001 is the order
+
+Responded By
+
+BT Team — 5/21/2026, 5:58:07 PM
+
+
+
+Q2. How should the autonumber behave for modified/revised graphics versus net-new graphics? Does a modification inherit the parent autonumber with a version suffix, or is a brand new c…
+
+Category
+
+Business Logic
+
+Complexity
+
+HIGH
+
+BA Question
+
+How should the autonumber behave for modified/revised graphics versus net-new graphics? Does a modification inherit the parent autonumber with a version suffix, or is a brand new control number issued? The success criteria mention iterative review cycles but do not clarify versioning rules.
+
+BT Response
+
+Its not editable once generated it's auto populate everywhere in read only mode
+
+Responded By
+
+BT Team — 5/21/2026, 5:58:07 PM
+
+
+
+Q3. What is the integration approach with the existing Graphics Tracker tool? Is this a plugin/macro within the tracker, an external service, or a replacement module? What APIs, data s…
+
+Category
+
+Integration
+
+Complexity
+
+HIGH
+
+BA Question
+
+What is the integration approach with the existing Graphics Tracker tool? Is this a plugin/macro within the tracker, an external service, or a replacement module? What APIs, data schemas, or file formats (Excel, SharePoint list, database) does the current tracker expose for read/write of the control number field?
+
+BT Response
+
+The Graphic Tracker Autonumbering Power App is built on Microsoft Power Platform and integrates with Microsoft Teams, Dataverse and SharePoint
+
+Responded By
+
+BT Team — 5/21/2026, 5:58:07 PM
+
+
+
+Q4. Given the volume (~58,050 graphics/month) and a 10-20% expected growth in FY25, what are the throughput, concurrency, and latency requirements for the autonumbering service? Are th…
+
+Category
+
+Performance
+
+Complexity
+
+MEDIUM
+
+BA Question
+
+Given the volume (~58,050 graphics/month) and a 10-20% expected growth in FY25, what are the throughput, concurrency, and latency requirements for the autonumbering service? Are there peak-hour spikes (e.g., end-of-quarter pursuit deadlines) that require burst capacity beyond the stated 2-minute average handling time?
+
+BT Response
+
+No peak hours spikes will be there because only 300 max users will be using the app and even if there is more users using application will not impact performance as we have simple action items by generating numbers we are sending emails for it.we dont have complicated logic or api's we are calling here
+
+Responded By
+
+BT Team — 5/21/2026, 5:58:07 PM
+
+
+
+Q5. What validation rules and exception handling are required when the Opportunity ID is missing, malformed, duplicated across markets, or when a graphic request spans multiple opportu…
+
+Category
+
+Data Validation
+
+Complexity
+
+MEDIUM
+
+BA Question
+
+What validation rules and exception handling are required when the Opportunity ID is missing, malformed, duplicated across markets, or when a graphic request spans multiple opportunities? Who is the business owner for resolving these exceptions, and what is the fallback if the autonumber service is unavailable?
+
+BT Response
+
+This numbers are autogenerated so failure scenario will  not come this can be happen only if power automate plateform will be down and below 1 business rule we have : - Team and Channel dropdowns display only Teams/Channels user is part of 
+
+Responded By
+
+BT Team — 5/21/2026, 5:58:07 PM
+
+
+
+Q6. What audit trail, logging, and reporting capabilities are required for compliance and harvesting/archiving (referenced in the success criteria)? Specifically, who can view, modify,…
+
+Category
+
+Process Governance
+
+Complexity
+
+MEDIUM
+
+BA Question
+
+What audit trail, logging, and reporting capabilities are required for compliance and harvesting/archiving (referenced in the success criteria)? Specifically, who can view, modify, or override an assigned autonumber, and what RBAC model applies across the 262 in-scope FTEs across all markets?
+
+BT Response
+
+No its not required as it is very simple and straightforward application
+
+Responded By
+
+BT Team — 5/21/2026, 5:58:07 PM
+
+
+
+Q7. The success criteria mention notifications to designer/submitter/reviewer at multiple status transitions, but the scope only covers autonumbering. Is notification orchestration in-…
+
+Category
+
+Process Governance
+
+Complexity
+
+LOW
+
+BA Question
+
+The success criteria mention notifications to designer/submitter/reviewer at multiple status transitions, but the scope only covers autonumbering. Is notification orchestration in-scope for this automation, or is it handled by the existing Graphics Tracker? If in-scope, what channels (email, Teams, in-app) and SLAs apply?
+
+BT Response
+
+After successful run below email will trigger and its the indicate of successful process:Email Notifications – In edit list, user can have option to toggle between email notifications as on/off to receive email notifications whenever there is a status change with that list item to the author. The field will be a toggle and will be called “Email status updates to Author”.   Dear Author/SME,  We are pleased to inform you that the graphic for your proposal has been completed. Below are the details of the completed graphic: Title : ABCGraphic Control Number : 000007.26.0001  Author/SME/Contact  : Name Submitted By : GraphicTrackerAutonu If you have any questions or need further assistance, please feel free to reach out to the assigned Graphic Designer.  If you require any modifications to the completed graphics, you can edit the status of the graphic to “Status.” Please provide the necessary details and instructions for the modifications through this link - Go to the tracker  Thank you.  Note: This is an automatically generated email, please do not reply. 
+
+Responded By
+
+BT Team — 5/21/2026, 5:58:07 PM
+
+
+
+Annexure B — PDD Approval Record
+
+Project Name
+
+Graphic Autonumber
+
+Project ID
+
+6a0ea879bbfc6eb7333fdd6a
+
+BT Lead
+
+BT Requestor
+
+Status at Approval
+
+Approved — Ready for Architecture phase
+
+Original PDD Version
+
+1.x (as uploaded)
+
+Approved PDD Version
+
+2.0 (Final — incl. BA clarifications)
+
+Approval Notes
+
+All BA clarifications addressed. PDD approved for Architecture phase.
+
+Approved By
+
+BT Team
+
+Approved On
+
+5/22/2026, 2:19:27 PM
+
+Generated By
+
+A-ADLC Platform — Approved PDD Generator
+
+
+
+This document is a system-generated, sign-off-ready version of the Process Definition Document. It preserves the original PDD body (including diagrams and screenshots) and appends the authoritative clarifications captured during the BA review cycle.
+
+
+
+PDD VISUAL ASSETS (images embedded in the PDD — refer to them by index):
+- Image #1: filename="image-001.png" contentType=image/png bytes=8043 altText="(none)"
+
+BA-IDENTIFIED GAPS (for context — already resolved by BT):
+Q1 [Business Logic / high]: What is the exact format and structure of the autonumber (e.g., delimiter, padding, character length for Opp ID/Year/Order)? Should the 'Order' be sequential per opportunity, per year, or globally, and how should collisions or re-runs be prevented when graphics are modified (where the PDD states 'a new slide within the file is created for each modification')?
+Q2 [Business Logic / high]: How should the autonumber behave for modified/revised graphics versus net-new graphics? Does a modification inherit the parent autonumber with a version suffix, or is a brand new control number issued? The success criteria mention iterative review cycles but do not clarify versioning rules.
+Q3 [Integration / high]: What is the integration approach with the existing Graphics Tracker tool? Is this a plugin/macro within the tracker, an external service, or a replacement module? What APIs, data schemas, or file formats (Excel, SharePoint list, database) does the current tracker expose for read/write of the control number field?
+Q4 [Performance / medium]: Given the volume (~58,050 graphics/month) and a 10-20% expected growth in FY25, what are the throughput, concurrency, and latency requirements for the autonumbering service? Are there peak-hour spikes (e.g., end-of-quarter pursuit deadlines) that require burst capacity beyond the stated 2-minute average handling time?
+Q5 [Data Validation / medium]: What validation rules and exception handling are required when the Opportunity ID is missing, malformed, duplicated across markets, or when a graphic request spans multiple opportunities? Who is the business owner for resolving these exceptions, and what is the fallback if the autonumber service is unavailable?
+Q6 [Process Governance / medium]: What audit trail, logging, and reporting capabilities are required for compliance and harvesting/archiving (referenced in the success criteria)? Specifically, who can view, modify, or override an assigned autonumber, and what RBAC model applies across the 262 in-scope FTEs across all markets?
+Q7 [Process Governance / low]: The success criteria mention notifications to designer/submitter/reviewer at multiple status transitions, but the scope only covers autonumbering. Is notification orchestration in-scope for this automation, or is it handled by the existing Graphics Tracker? If in-scope, what channels (email, Teams, in-app) and SLAs apply?
+
+BT TEAM RESPONSES (authoritative business clarifications):
+Q1: What is the exact format and structure of the autonumber (e.g., delimiter, padding, character length for Opp ID/Year/Order)? Should the 'Order' be sequential per opportunity, per year, or globally, and how should collisions or re-runs be prevented when graphics are modified (where the PDD states 'a new slide within the file is created for each modification')?
+A: Order is the unique graphic number generated by the Graphics Tracker. This number will always be four numeric characters (e.g., 0001, 0999) 
+
+Title  : ABC
+	
+Graphic Control Number : 000007.26.0001 
+
+000007 is opportunity ID, 26 is the year like 2026, 0001 is the order
+
+Q2: How should the autonumber behave for modified/revised graphics versus net-new graphics? Does a modification inherit the parent autonumber with a version suffix, or is a brand new control number issued? The success criteria mention iterative review cycles but do not clarify versioning rules.
+A: Its not editable once generated it's auto populate everywhere in read only mode
+
+Q3: What is the integration approach with the existing Graphics Tracker tool? Is this a plugin/macro within the tracker, an external service, or a replacement module? What APIs, data schemas, or file formats (Excel, SharePoint list, database) does the current tracker expose for read/write of the control number field?
+A: The Graphic Tracker Autonumbering Power App is built on Microsoft Power Platform and integrates with Microsoft Teams, Dataverse and SharePoint
+
+Q4: Given the volume (~58,050 graphics/month) and a 10-20% expected growth in FY25, what are the throughput, concurrency, and latency requirements for the autonumbering service? Are there peak-hour spikes (e.g., end-of-quarter pursuit deadlines) that require burst capacity beyond the stated 2-minute average handling time?
+A: No peak hours spikes will be there because only 300 max users will be using the app and even if there is more users using application will not impact performance as we have simple action items by generating numbers we are sending emails for it.we dont have complicated logic or api's we are calling here
+
+Q5: What validation rules and exception handling are required when the Opportunity ID is missing, malformed, duplicated across markets, or when a graphic request spans multiple opportunities? Who is the business owner for resolving these exceptions, and what is the fallback if the autonumber service is unavailable?
+A: This numbers are autogenerated so failure scenario will  not come this can be happen only if power automate plateform will be down and below 1 business rule we have : - Team and Channel dropdowns display only Teams/Channels user is part of 
+
+Q6: What audit trail, logging, and reporting capabilities are required for compliance and harvesting/archiving (referenced in the success criteria)? Specifically, who can view, modify, or override an assigned autonumber, and what RBAC model applies across the 262 in-scope FTEs across all markets?
+A: No its not required as it is very simple and straightforward application
+
+Q7: The success criteria mention notifications to designer/submitter/reviewer at multiple status transitions, but the scope only covers autonumbering. Is notification orchestration in-scope for this automation, or is it handled by the existing Graphics Tracker? If in-scope, what channels (email, Teams, in-app) and SLAs apply?
+A: After successful run below email will trigger and its the indicate of successful process:Email Notifications – In edit list, user can have option to toggle between email notifications as on/off to receive email notifications whenever there is a status change with that list item to the author. The field will be a toggle and will be called “Email status updates to Author”. 
+
+  
+
+Dear Author/SME, 
+ 
+We are pleased to inform you that the graphic for your proposal has been completed. Below are the details of the completed graphic: 
+
+Title : ABC
+
+Graphic Control Number : 000007.26.0001  
+
+Author/SME/Contact  : Name 
+
+Submitted By : GraphicTrackerAutonu 
+
+If you have any questions or need further assistance, please feel free to reach out to the assigned Graphic Designer. 
+ 
+If you require any modifications to the completed graphics, you can edit the status of the graphic to “Status.” Please provide the necessary details and instructions for the modifications through this link - Go to the tracker 
+ 
+Thank you. 
+ 
+Note: This is an automatically generated email, please do not reply. 
+
+GROUND RULES — read carefully:
+- Every TDD module MUST map back to a named SDD component via `sourceComponent`. Do NOT invent components.
+- Every TDD task MUST map to a module via `module`, and SHOULD reference an SDD screen id in `relatedScreen` when it builds or wires UI.
+- Tasks must be atomic — sized for a single developer in 1–3 days. If a piece of work is larger, split it.
+- Use the SDD's chosen tech stack only. Do not introduce new frameworks, languages, or services.
+- Express ordering via `dependencies: [taskId, ...]`. The dependency graph must be acyclic.
+- Pseudocode is mandatory for any non-trivial task. Use the actual platform/syntax of the SDD's tech stack (e.g., Power Fx for canvas apps, Power Automate expression language, Dataverse plugin C#, SQL, etc. — whichever the SDD picked). Generic prose like "implement the logic" is unacceptable.
+- For UI tasks, name the SDD screen and list the controls being built/wired.
+- For data tasks, list the exact entity + field names from the SDD's data model.
+- For workflow/integration tasks, name the trigger, the inputs, the outputs, and error handling.
+- Every PDD image MUST be referenced at least once across the TDD (in a task, sequence diagram, or `pddVisualReferences`).
+- Anything still ambiguous goes in `openQuestions` with which task IDs it blocks — do not silently guess.
+- Include test cases at the task level (`acceptanceCriteria`) AND a top-level `testStrategy` covering unit, integration, UAT, and edge cases drawn from the PDD/BT answers.
+
+Return ONLY a JSON object with this exact structure (no other text, no markdown fences):
+{
+  "summary": "3-5 sentence overview of what this TDD covers, the implementation sequence (high level), and how it traces to the SDD.",
+  "buildSequence": [
+    "Ordered, high-level phase 1 (e.g., 'Phase 1 — Foundation: environments, Dataverse schema')",
+    "Phase 2 — ...",
+    "Phase 3 — ..."
+  ],
+  "modules": [
+    {
+      "name": "Module name (matches an SDD component where possible)",
+      "purpose": "What this module owns end-to-end",
+      "sourceComponent": "Name of the SDD component this implements (must exist in SDD.components)",
+      "ownedEntities": ["Data entities (from SDD.dataModel) this module reads/writes"],
+      "interfaces": [
+        {
+          "name": "Function / class / endpoint / flow / table name",
+          "type": "function | class | api | event | flow | table | screen",
+          "signature": "Concrete signature/schema (e.g., 'createGraphicRequest(payload) -> GraphicRequest' or 'Table gt_graphicrequest { gt_title: string(200), ... }')",
+          "description": "What it does, inputs, outputs, errors"
+        }
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Short imperative title (e.g., 'Build Create-New-Tracker screen and wire to Dataverse')",
+      "description": "What needs to be built. Cite the SDD component and the PDD requirement(s). Include concrete field names, labels, and behaviors.",
+      "module": "Name of the module this task belongs to (must exist in modules[].name)",
+      "sourceComponent": "SDD component this task implements",
+      "relatedScreen": "SDD screen id this task builds (or empty string if backend-only)",
+      "relatedPddImages": [1],
+      "complexity": "low | medium | high",
+      "estimatedHours": 8,
+      "dependencies": [],
+      "acceptanceCriteria": [
+        "Specific, testable criterion 1",
+        "Specific, testable criterion 2"
+      ],
+      "pseudocode": "Multi-line pseudocode or code skeleton in the SDD's tech stack (Power Fx / Power Automate expressions / C# plugin / SQL etc.). Show the actual control names, table names, and field names from the SDD."
+    }
+  ],
+  "sequenceDiagrams": [
+    {
+      "name": "e.g., New Graphic Request — submit through autonumber to email",
+      "asciiSequence": "ASCII sequence diagram showing actor → UI → flow → Dataverse → notification. Use --> arrows."
+    }
+  ],
+  "dataMigrationOrBootstrap": [
+    {
+      "task": "What needs to be bootstrapped (e.g., 'Seed gt_sequencecounter rows for active opportunities')",
+      "approach": "How",
+      "owner": "Module name"
+    }
+  ],
+  "testStrategy": {
+    "unit": "How unit testing should be approached for the stack used (e.g., Test Studio for Canvas, Plugin Profiler for Dataverse plugins)",
+    "integration": "How integration testing should be approached (end-to-end: UI → flow → Dataverse → email)",
+    "uat": "How UAT should be run with the 262 FTE user base — sample data, sign-off criteria",
+    "edgeCases": ["Specific edge case drawn from PDD/BT (e.g., 'Concurrent submissions for same OppID — autonumber must not duplicate')"]
+  },
+  "pddVisualReferences": [
+    {
+      "imageIndex": 1,
+      "imageFilename": "image-001.png",
+      "whatItShows": "Describe what the PDD image depicts",
+      "howUsedInTdd": "Which task(s) or interface in THIS TDD that image informs (cite task ids)"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Specific unresolved question — do NOT include questions BT already answered",
+      "blockingTasks": [1, 2]
+    }
+  ]
+}

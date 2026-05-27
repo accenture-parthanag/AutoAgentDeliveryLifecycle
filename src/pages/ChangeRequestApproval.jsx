@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getProject, submitJob } from '../api';
-import RichTextEditor from '../components/RichTextEditor';
 
 export default function ChangeRequestApproval() {
   const { projectId } = useParams();
@@ -182,10 +181,11 @@ export default function ChangeRequestApproval() {
               {pendingCR?.status === 'pending-ccb' && 'Approval Notes (Optional)'}
               {pendingCR?.status === 'pending-ccb' && ' or Rejection Reason (Required if rejecting)'}
             </label>
-            <RichTextEditor
+            <textarea
               value={approvalNotes}
-              onChange={setApprovalNotes}
+              onChange={(e) => setApprovalNotes(e.target.value)}
               placeholder="Add any notes about this decision..."
+              rows="4"
             />
           </div>
 

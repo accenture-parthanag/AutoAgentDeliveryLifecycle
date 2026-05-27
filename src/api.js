@@ -73,12 +73,3 @@ export async function getQueueJobs(stage) {
 export async function getJob(jobId) {
   return apiCall(`/jobs/${jobId}`);
 }
-
-export async function getFinalPdd(projectId) {
-  const response = await fetch(`${BASE}/projects/${projectId}/final-pdd`);
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(err.error || `HTTP ${response.status}`);
-  }
-  return response.blob();
-}

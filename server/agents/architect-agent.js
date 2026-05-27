@@ -5,6 +5,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const PDFParse = require('pdf-parse');
+const mammoth = require('mammoth');
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const MONGODB_DB = process.env.MONGODB_DB || 'aadlc';
@@ -58,21 +59,67 @@ function formatBtResponses(btResponses, baGaps) {
     .join('\n\n');
 }
 
-async function readPddContent(projectId) {
-  const pddJob = await db.collection('jobs').findOne(
-    { projectId, stage: 'pdd_review', 'context.pddFilePath': { $exists: true } },
-    { sort: { createdAt: -1 } }
+function findLatestPddPath(projectId, allJobs) {
+  // Prefer change-request (most recent approved PDD), then pdd_review.
+  const candidates = allJobs
+    .filter(j => j.projectId === projectId && j.context?.pddFilePath)
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  const cr = candidates.find(j => j.stage === 'change-request');
+  if (cr) return cr.context.pddFilePath;
+  const pddReview = candidates.find(j => j.stage === 'pdd_review');
+  if (pddReview) return pddReview.context.pddFilePath;
+  return candidates[0]?.context.pddFilePath || null;
+}
+
+async function extractDocx(filePath) {
+  const buffer = fs.readFileSync(filePath);
+  const imageManifest = [];
+  const imagesOutDir = path.join(__dirname, '..', '..', 'tmp-pdd-analysis', 'sdd-images');
+  if (!fs.existsSync(imagesOutDir)) fs.mkdirSync(imagesOutDir, { recursive: true });
+
+  let imageIndex = 0;
+  await mammoth.convertToHtml(
+    { buffer },
+    {
+      convertImage: mammoth.images.imgElement(async (image) => {
+        const imgBuf = await image.read();
+        imageIndex += 1;
+        const ext = (image.contentType || 'image/png').split('/')[1] || 'png';
+        const filename = `image-${String(imageIndex).padStart(3, '0')}.${ext}`;
+        const outPath = path.join(imagesOutDir, filename);
+        fs.writeFileSync(outPath, imgBuf);
+        imageManifest.push({
+          index: imageIndex,
+          filename,
+          contentType: image.contentType,
+          bytes: imgBuf.length,
+          altText: image.altText || '',
+          savedAt: outPath
+        });
+        return { src: filename, alt: image.altText || `Figure ${imageIndex}` };
+      })
+    }
   );
 
-  if (!pddJob?.context?.pddFilePath) {
+  const textResult = await mammoth.extractRawText({ buffer });
+  return {
+    text: textResult.value,
+    imageManifest
+  };
+}
+
+async function readPddContent(projectId) {
+  const allJobs = await db.collection('jobs').find({ projectId }).toArray();
+  const filePath = findLatestPddPath(projectId, allJobs);
+
+  if (!filePath) {
     console.error(`⚠️  No PDD file path found for project ${projectId}`);
-    return 'No PDD file available';
+    return { text: 'No PDD file available', imageManifest: [], filePath: null };
   }
 
-  const filePath = pddJob.context.pddFilePath;
   if (!fs.existsSync(filePath)) {
     console.error(`⚠️  PDD file not found on disk: ${filePath}`);
-    return 'PDD file not found on disk';
+    return { text: 'PDD file not found on disk', imageManifest: [], filePath };
   }
 
   try {
@@ -80,25 +127,40 @@ async function readPddContent(projectId) {
       const buffer = fs.readFileSync(filePath);
       const pdfData = await PDFParse(buffer);
       console.log(`✓ Extracted ${pdfData.text.length} bytes from PDF (${pdfData.numpages} pages)`);
-      return pdfData.text;
+      return { text: pdfData.text, imageManifest: [], filePath };
+    }
+    if (filePath.toLowerCase().endsWith('.docx')) {
+      const { text, imageManifest } = await extractDocx(filePath);
+      console.log(`✓ Extracted ${text.length} chars and ${imageManifest.length} image(s) from DOCX`);
+      return { text, imageManifest, filePath };
     }
     const text = fs.readFileSync(filePath, 'utf-8');
-    console.log(`✓ Read ${text.length} bytes from PDD file`);
-    return text;
+    console.log(`✓ Read ${text.length} bytes from PDD file (plain-text fallback)`);
+    return { text, imageManifest: [], filePath };
   } catch (readErr) {
     console.error(`⚠️  Error reading PDD file: ${readErr.message}`);
-    return `File reading error: ${readErr.message}`;
+    return { text: `File reading error: ${readErr.message}`, imageManifest: [], filePath };
   }
 }
 
-function generateSddWithClaude(project, fileContent) {
+function formatImageManifest(manifest) {
+  if (!Array.isArray(manifest) || manifest.length === 0) {
+    return '(no images embedded in the PDD)';
+  }
+  return manifest
+    .map(img => `- Image #${img.index}: filename="${img.filename}" contentType=${img.contentType} bytes=${img.bytes} altText="${img.altText || '(none)'}"`)
+    .join('\n');
+}
+
+function generateSddWithClaude(project, pddPayload) {
   const prompt = renderPrompt({
     projectName: project.name,
     description: project.description,
     scope: project.scope,
     objectives: project.objectives,
     criteria: project.criteria,
-    fileContent,
+    fileContent: pddPayload.text,
+    imageManifest: formatImageManifest(pddPayload.imageManifest),
     baGaps: formatBaGaps(project.baGaps),
     btResponses: formatBtResponses(project.btResponses, project.baGaps),
   });
@@ -214,12 +276,12 @@ async function pollAndProcess() {
       }
       console.error(`✓ STEP 1 DONE: Project "${project.name}" found`);
 
-      console.error(`STEP 2: Loading PDD content...`);
-      const fileContent = await readPddContent(jobData.projectId);
-      console.error(`✓ STEP 2 DONE`);
+      console.error(`STEP 2: Loading PDD content (text + images)...`);
+      const pddPayload = await readPddContent(jobData.projectId);
+      console.error(`✓ STEP 2 DONE — text=${pddPayload.text.length} chars, images=${pddPayload.imageManifest.length}`);
 
       console.error(`STEP 3: Calling Claude to generate SDD...`);
-      const sdd = generateSddWithClaude(project, fileContent);
+      const sdd = generateSddWithClaude(project, pddPayload);
       console.error(`✓ STEP 3 DONE`);
 
       console.error(`STEP 4: Updating project with SDD...`);
@@ -233,6 +295,8 @@ async function pollAndProcess() {
           $set: {
             sddDocument: sdd,
             sddJobId: jobData._id.toString(),
+            sddPddImages: pddPayload.imageManifest,
+            sddPddSourcePath: pddPayload.filePath,
             phases: updatedPhases,
             updatedAt: new Date()
           }

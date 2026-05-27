@@ -1,0 +1,980 @@
+https://ts.accenture.com/sites/GraphicTrackerRD/Shared%20Documents/Forms/AllItems.aspx
+
+https://ts.accenture.com/sites/GraphicTrackerRD-ChannelVinoth/Shared%20Documents/Forms/AllItems.aspx
+
+Process:
+
+Pursuit Services
+
+Issue:
+
+Graphic Tracker Autonumbering
+
+
+
+
+
+Name
+
+Title
+
+Organization 
+
+Email 
+
+Deepa Ramanujam
+
+BT Lead
+
+Accenture
+
+deepa.ramanujam@accenture.com
+
+Kamna Verma
+
+BT Lead
+
+Accenture
+
+kamna.verma@accenture.com
+
+Vinoth Ezhilan Manian
+
+Tech Arch Assoc Manager
+
+Accenture
+
+vinoth.e.manian@accenture.com
+
+Karthik Ballal
+
+App Development Specialist
+
+Accenture
+
+karthik.ballal@accenture.com
+
+Michele L Johnson
+
+Pursuit Services
+
+Accenture
+
+michele.l.johnson@accenture.com
+
+Daisy R Landas
+
+Pursuit Services
+
+Accenture
+
+daisy.r.landas@accenture.com
+
+Kuldeep Garud
+
+Pursuit Services
+
+Accenture 
+
+kuldeep.garud@accenture.com
+
+
+
+Document Revision History
+
+Version
+
+Description
+
+Author
+
+Revision date
+
+Approver
+
+Approval Date
+
+1.0
+
+Requirements for Graphic Tracker Autonumbering
+
+Deepa Ramanujam
+
+3rd Sep 24
+
+
+
+
+
+1.1
+
+Additional landing page requirement
+
+Deepa Ramanujam
+
+10th Jan 25
+
+
+
+
+
+1.3
+
+Additional notification information and templates
+
+Deepa Ramanujam
+
+22nd Jan 25 
+
+
+
+
+
+1.4
+
+Requirement enhancement for Graphic Tracker Autonumbering
+
+Kamna Verma
+
+27th Feb 25
+
+
+
+
+
+
+
+
+
+Template Revision History
+
+Version
+
+Description
+
+Author
+
+Revision date
+
+Approver
+
+Approval Date
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Compliance to General Data Protection Regulation (GDPR)
+
+The Process Definitions have been documented to comply with the General Data Protection Regulations. 
+
+
+
+
+
+Table of Contents
+
+1	Introduction	5
+
+1.1	Purpose	5
+
+1.2	Process Overview	5
+
+2	Scope	5
+
+3	Anchor Applications	6
+
+4	Process Performance	7
+
+5	General Data Protection Regulations	7
+
+6	Process	7
+
+6.1	Process Inputs	7
+
+6.2	Pre-Process steps	8
+
+6.3	Post-Process steps	8
+
+6.4	Process Map	8
+
+6.4.1	Detailed Process Maps - Sub-process/Scenario 1	8
+
+6.4.2	Detailed Process Maps - Sub-process/Scenario 2	10
+
+7	Assumptions and Risks	11
+
+
+
+Introduction
+
+Overview and Context
+
+Pursuit Services Graphic Designers (GDs) create engaging visual concepts and supporting graphics to illustrate key sales messages, data, and differentiators in print and digital pursuit deliverables with a consistent and compelling style.
+
+ 
+
+Purpose
+
+
+
+The scope of this automation is to auto generate the Graphic Control number. 
+
+
+
+Process Overview
+
+Graphics Tracker is the Primary tool for Pursuit Services graphics support on Word response documents which is used for submitting and tracking progress of graphic requests, and inventory management for future reference/reuse. It is also used for storage of completed graphic files, associated templates, and production materials
+
+
+
+Review RFX/project scope, design & submission requirements
+
+Consult with deal team to gather and assess client insights and win themes
+
+Discuss and brainstorm with deal team for materials to support submission/meeting
+
+Create document templates complying with client and RFX requirements/branding
+
+Leverage repository of reusable graphics/assets to create custom graphics
+
+Use the Graphics tracker to track status for word only
+
+Create graphics tracker to track status of individual graphics files
+
+Update graphics tracker where graphics modifications requested - new slide within the file is created for each modification
+
+Paste completed graphics files to Word file
+
+Use iterative review cycle to refine graphics based on input from deal team
+
+Format final documents and conduct quality check
+
+Prepare files for final print production or digital submission
+
+Confirm all final files have been uploaded for archiving/harvesting
+
+Support hours:
+
+
+
+Graphic Design Support is provided during regular business hours across all markets (Asia Pacific, EMEA and Americas) as specified in the below table.
+
+Operating Window/Shift Split
+
+Home Market Location
+
+Local Country Timing
+
+FTEs
+
+Growth Markets
+
+09:00 – 21:00 (India Time)
+
+09:00 – 19:00 (Other countries, local time)
+
+262
+
+Europe
+
+09:00 – 19:00
+
+North America
+
+09:00 – 19:00
+
+
+
+Scope
+
+
+
+In-Scope Activities
+
+Activity/ Scenario
+
+Location/ Geography
+
+FTEs (Production FTEs)
+
+Operating Window
+
+Automate the Graphic Control number using the following naming convention: Opp ID, Year and Order
+
+All Markets
+
+262
+
+Windows
+
+
+
+Out of Scope Activities
+
+Activity/ Scenario/
+
+Location/ Geography
+
+FTEs (Production FTEs)
+
+Reasons for exclusion
+
+Mac OS
+
+All Markets
+
+N/A
+
+N/A
+
+
+
+
+
+Anchor Applications
+
+This section is to provide a list of Applications to be used in the Solution (To add Env specific from PAD)
+
+
+
+Anchor Applications
+
+
+
+Application name with Version
+
+Ownership (External/ Internal)
+
+Type of Application (Web, Windows, Citrix, Mainframe, etc.)
+
+Credentials required for Robot?
+
+Use of CAPTCHA
+
+Activities the Applications is used in
+
+Application Availability (Window)
+
+Inflight projects/version upgrades planned within 3 months
+
+Microsoft Teams
+
+Internal
+
+Macro enabled
+
+Designers and other Graphic Tracker users need to have Member access granted in MS Teams.
+
+No
+
+Automation of Graphic Control number
+
+Windows
+
+Not Applicable
+
+
+
+Process Performance
+
+This section to cover all relevant metrics used to gauge the process performance for all activities in scope
+
+
+
+Process Performance
+
+
+
+Activity
+
+Average Monthly Volume (6 Months)
+
+Average Handling Time
+
+Seasonal peak Volume if applicable
+
+Turnaround Time
+
+Any other SLA
+
+
+
+FTEs
+
+Additional Comments (Kick off and Cut-off time)
+
+Pursuit Services - Graphic Tracker Autonumbering
+
+58050 approx.
+
+2 mins/per graphic
+
+N/A
+
+2 mins/per graphic
+
+N/A
+
+224
+
+N/A
+
+
+
+The above table is indicative only and actual timelines may vary from deal to deal. Also, we expect the volume handled to increase by 10-20% in FY25.
+
+
+
+General Data Protection Regulations
+
+
+
+Please mention details of any Data Protection/regulatory requirements that the process is required to comply with. Add Personal and Sensitive Personal Data (PD/SPD) specific to the Process documented: 
+
+
+
+Not applicable, this automation does not involve any PII. 
+
+Process
+
+Process Inputs
+
+
+
+Automated Control Number prepopulated on adding new line items to the Graphic Tracker.   
+
+
+
+Process Inputs
+
+Activity
+
+Source (Workflow Application. Emails, etc.)
+
+Structured (Y/N)
+
+Format (Attachment samples, Excel, PDF, etc.)
+
+Automation Feasibility (Y/N)
+
+E-Form required
+
+Graphic Control Number
+
+Teams
+
+Y
+
+Teams Form
+
+Y
+
+No
+
+
+
+Pre-Process Steps:
+
+
+
+The Graphic tracker will be enabled on individual teams’ channels for the deal supported by the Graphic Designer. 
+
+Multiple designers can be supporting one deal and hence will be leveraging this tracker which is placed in the common team’s folder. 
+
+All Graphic must be modified in some way to be incorporated into the proposal response and must be logged for tracking purposes.
+
+Consecutive Graphic control number should be generated even if multiple designers are creating it, this should be based on the last created number. 
+
+Post-Process steps
+
+
+
+Graphic control number is created when the submitter or the graphic designer creates an entry on the Graphic Tracker which will help reference and identify graphics created by Pursuit Services
+
+Process Steps 
+
+
+
+Draft Graphic request is submitted on the tracker.
+
+All Graphic must be modified in some way to be incorporated into the proposal response and must be logged for tracking purposes.
+
+A notification can be sent to the designer that a new item has been added to the tracker. 
+
+The designer updates the tracker that the Graphic is In Progress.
+
+Designer notifies the submitter that this is now completed, reviewer will review and update status of Graphic Tracker Request Item if any edits or changes needed
+
+Graphic tracker is updated to complete status once received confirmation from requestor that this can be incorporated into the proposal response and no further edits are required.
+
+
+
+Detailed Process Maps - Sub-process/Scenario 1
+
+ Graphic Tracker is created for all word requests.
+
+Detailed Process Flow
+
+
+
+Location of the Tracker
+
+The Graphic tracker is placed in the deal specific Teams channel 
+
+The PowerApp solution needs to be available as a tab at the top of the Teams channel
+
+All deal team members will have access to this Teams channel
+
+
+
+Tracker is a list available in the Graphic Teams Channel.
+
+Enabling a PowerApp solution 
+
+The theme to be aligned in Accenture colour. (Shared sample colour with the developer)
+
+PowerApp Landing page to have three options
+
+Create a new Graphics Tracker
+
+Add/Update requests in existing Graphics Tracker
+
+View existing Graphics Tracker
+
+Graphic Designer updates the Opportunity ID, Deal Name and Teams channel link which would be a perquisite to trigger this automation.
+
+The control number naming using the following convention: Opp ID, Year and Order
+
+Opportunity ID number of the project from the assignment note.
+
+Year is a two-digit representation of the calendar year of the response submission
+
+Order is the unique graphic number generated by the Graphics Tracker. This number will always be four numeric characters (e.g., 0001, 0999)
+
+Sample Graphic Control Number - 
+
+Rename the icons as follows:
+
+Change "Create a New List" to "Create a New Graphic Tracker"
+
+Change "View an Existing List" to "Open Existing Graphic Tracker" 
+
+Remove the option to delete items from the tool.
+
+Add an option to create a new item in the tool.
+
+The "Submitted by" field should auto-fill with the submitter’s name.s
+
+The tool should have the ability to sort and group by status.
+
+Add a Sort by section to the tool.
+
+Provide an option to select Yes or No for receiving notifications.
+
+Currently, the tool refreshes manually. The system should refresh it automatically.
+
+Provide a SharePoint site link to guide users on folder locations and standard naming conventions. The graphic control name should be the file name.
+
+Restrict access to users who are not working on the deal. Only assigned users should have access. (The dropdown should appear only when access is enabled.)
+
+The Graphic Tracker will be accessible to everyone in Accenture, but the SharePoint link will be restricted. Users will only gain access to deal details once they are assigned to the deal. 
+
+Multiple users to be use the tool simultaneously. Have a “Hello username” at the top.
+
+
+
+Detailed Requirements: Editing Function
+
+
+
+The automated control number should be pre-populated on the Graphic Tracker. 
+
+Graphic Designer should not be able to change the Unique ID that is autogenerated. 
+
+Detailed Requirements: Formatting Function
+
+Not applicable 
+
+Detailed Requirements: Tool Requirement
+
+
+
+MultiUser support for the tool
+
+As is: Graphic Control number is manually created  
+
+To be: Automated Graphic Control number.  
+
+
+
+MS Office Compatibility
+
+As is: Automation on teams. 
+
+To be: Automation on teams.
+
+
+
+General Macro Requirements 
+
+
+
+Tool stability:  Not Applicable
+
+Sound Notification: Not Applicable
+
+Stop Macro – Non availability of Opportunity ID details will impact the Control Number creation
+
+Track Change – Not applicable
+
+Email Notification –Applicable (Graphic Designer should be able to turn this notification option on or off)
+
+When a Graphic is submitted a notification must be sent to the Graphic Designer 
+
+
+
+******************************************************************
+
+Email template
+
+Subject: New Graphics for Proposal - [Opportunity Name]
+
+
+
+To
+
+Graphic Designer
+
+
+
+Dear Graphic Designer,
+
+
+
+A new Graphic request has been submitted.
+
+
+
+ID
+
+Title
+
+Status
+
+Graphics Type
+
+Instructions
+
+Section
+
+Author/SME/Contact
+
+Submitted By
+
+Graphic Designer
+
+1
+
+Overview
+
+New
+
+Medium
+
+This is demo.
+
+1
+
+Kuldeep
+
+Kuldeep Garud 
+
+Ramanujam, Deepa 
+
+2
+
+Facts
+
+New
+
+Basic
+
+This is demo.
+
+3
+
+Kuldeep
+
+Kuldeep Garud 
+
+Ramanujam, Deepa 
+
+
+
+If you have any questions, please feel free to reach out to the Submitter.
+
+******************************************************************
+
+When Progress changes to “Updates Needed” send email to Graphic Designer
+
+
+
+Email template
+
+Subject: Updates Needed for Graphics - [Opportunity Name]
+
+
+
+To
+
+Graphic Designer
+
+
+
+Dear Graphic Designer,
+
+
+
+Updates needed request has been submitted for the below Graphic request 
+
+
+
+ID
+
+Title
+
+Status
+
+Graphics Type
+
+Instructions
+
+Section
+
+Graphic Control Number
+
+Submitted By
+
+Graphic Designer
+
+1
+
+Overview
+
+Updates Needed
+
+Medium
+
+This is demo.
+
+1
+
+12345678.25.0001
+
+Kuldeep Garud 
+
+Ramanujam, Deepa 
+
+2
+
+Facts
+
+Updates Needed
+
+Basic
+
+This is demo.
+
+3
+
+12345678.25.0002
+
+Kuldeep Garud 
+
+Ramanujam, Deepa 
+
+
+
+If you have any questions, please feel free to reach out to the Submitter.
+
+******************************************************************
+
+
+
+
+
+Completion Comment – Applicable
+
+When Progress changes to “Completed” send email to “Submitted by”
+
+
+
+To,
+
+Submitter 
+
+Email template
+
+Subject: Graphics Completed for Proposal - [Opportunity Name]
+
+
+
+Dear [Submitted By],
+
+
+
+We are pleased to inform you that the graphics for your proposal have been completed. Below are the details of the completed graphics:
+
+
+
+ID
+
+Title
+
+Graphic Control Number
+
+Status
+
+Graphics Type
+
+Instructions
+
+Source File Control Number
+
+Section
+
+Author/SME/Contact
+
+Submitted By
+
+Graphic Designer
+
+Created
+
+Date
+
+Modified
+
+Date
+
+Modified by
+
+1
+
+Overview
+
+12345678.25.0001
+
+Completed
+
+Medium
+
+This is demo.
+
+87654321.24.0023
+
+1
+
+Kuldeep
+
+Kuldeep Garud 
+
+Ramanujam, Deepa 
+
+Default format
+
+Default format
+
+Kuldeep
+
+2
+
+Facts
+
+12345678.25.0002
+
+Completed
+
+Basic
+
+This is demo.
+
+-
+
+3
+
+Kuldeep
+
+Kuldeep Garud 
+
+Ramanujam, Deepa 
+
+Default format
+
+Default format
+
+Kuldeep
+
+
+
+If you have any questions or need further assistance, please feel free to reach out to the graphic design team.
+
+If you require any modifications to the completed graphics, you can submit an Updates Needed request. Please provide the necessary details and instructions for the modifications.
+
+
+
+Thank you for your submission and collaboration.
+
+
+
+
+
+6.4.6. Assumptions and Risks
+
+
+
+Opportunity ID details are available.
+
+The Control numbers will be increased in chronological order.
+
+The Overall Graphics per deal to not exceed 9000.
+

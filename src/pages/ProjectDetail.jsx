@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { getProject, submitJob } from '../api';
-import RichTextEditor from '../components/RichTextEditor';
 
 export default function ProjectDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [showBugUpload, setShowBugUpload] = useState(false);
-  const [bugTitle, setBugTitle] = useState('');
-  const [bugDescription, setBugDescription] = useState('');
   const [bugs, setBugs] = useState([]);
   const [showGlossary, setShowGlossary] = useState(false);
   const [project, setProject] = useState(null);
@@ -18,8 +15,6 @@ export default function ProjectDetail() {
   const [tddDispatching, setTddDispatching] = useState(false);
   const [tddStartedAt, setTddStartedAt] = useState(null);
   const [nowTick, setNowTick] = useState(Date.now());
-  const [mermaidRendered, setMermaidRendered] = useState(false);
-  const [finalPddDownloading, setFinalPddDownloading] = useState(false);
 
   useEffect(() => {
     getProject(id)
@@ -53,25 +48,6 @@ export default function ProjectDetail() {
       setTddStartedAt(null);
     }
   }, [project, tddStartedAt]);
-
-  // Render mermaid diagram - let the library handle it naturally
-  useEffect(() => {
-    if (!project?.baProcessFlow) return;
-
-    setTimeout(() => {
-      try {
-        if (window.mermaid?.run) {
-          window.mermaid.run();
-        } else if (window.mermaid?.contentLoaded) {
-          window.mermaid.contentLoaded();
-        }
-        setMermaidRendered(true);
-      } catch (err) {
-        console.error('Mermaid render error:', err);
-        setMermaidRendered(true);
-      }
-    }, 100);
-  }, [project?.baProcessFlow]);
 
   // Tick every second while TDD is in progress so elapsed time + simulated progress advance
   useEffect(() => {
@@ -245,7 +221,7 @@ export default function ProjectDetail() {
       {/* ADLC PHASE TIMELINE */}
       <div className="surface mb-lg">
         <h2 style={{ borderBottom: '1px solid var(--outline-variant)', paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
-          AASDI Lifecycle Progress
+          A-ADLC Lifecycle Progress
         </h2>
 
         {/* TIMELINE VISUALIZATION - RESPONSIVE GRID */}
@@ -358,14 +334,12 @@ export default function ProjectDetail() {
               )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-              {isPddApproved && (
-                <Link to={`/change-request/${id}`} style={{ textDecoration: 'none' }}>
-                  <button className="btn btn-primary">
-                    <span className="material-symbols-outlined" style={{ fontSize: '20px', marginRight: '8px' }}>description</span>
-                    Submit Change Request
-                  </button>
-                </Link>
-              )}
+              <Link to={`/change-request/${id}`} style={{ textDecoration: 'none' }}>
+                <button className="btn btn-primary">
+                  <span className="material-symbols-outlined" style={{ fontSize: '20px', marginRight: '8px' }}>cloud_upload</span>
+                  Submit Change Request / New PDD
+                </button>
+              </Link>
               {canApprove && (
                 <Link to={`/pdd-approval/${id}`} style={{ textDecoration: 'none' }}>
                   <button className="btn btn-primary" style={{ backgroundColor: '#10b981' }}>
@@ -517,7 +491,7 @@ export default function ProjectDetail() {
                 const uatStatus = statusOf('uat');
 
                 if (uatStatus === 'completed') {
-                  return 'UAT sign-off received. All AASDI phases are complete.';
+                  return 'UAT sign-off received. All A-ADLC phases are complete.';
                 }
                 if (uatStatus === 'in-progress') {
                   return 'UAT is in progress. End users are validating the solution against acceptance criteria.';
@@ -564,126 +538,6 @@ export default function ProjectDetail() {
           </div>
         );
       })()}
-
-      {/* PDD VERSIONS */}
-      {project.pddVersions && project.pddVersions.length > 0 && (
-        <div className="surface mb-lg">
-          <h2 style={{ borderBottom: '1px solid var(--outline-variant)', paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
-            PDD Version History
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-            {project.pddVersions.slice().reverse().map((version, idx) => (
-              <div key={idx} style={{
-                padding: 'var(--space-md)',
-                backgroundColor: 'var(--surface-container-low)',
-                border: '1px solid var(--outline-variant)',
-                borderLeft: version.status === 'final' ? '4px solid var(--primary-container)' : '4px solid var(--outline-variant)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                  <div>
-                    <p style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>{version.label}</p>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--on-surface-variant)' }}>
-                      {new Date(version.createdAt).toLocaleDateString()} by {version.createdBy}
-                    </p>
-                  </div>
-                  <span style={{
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    padding: '4px 8px',
-                    backgroundColor: version.status === 'final' ? '#10b981' : version.status === 'under-review' ? '#fbbf24' : '#d1d5db',
-                    color: version.status === 'final' ? 'white' : 'black',
-                    textTransform: 'capitalize'
-                  }}>
-                    {version.status}
-                  </span>
-                </div>
-                {version.notes && (
-                  <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: 'var(--on-surface-variant)' }}>
-                    {version.notes}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* CHANGE REQUESTS */}
-      {project.changeRequests && project.changeRequests.length > 0 && (
-        <div className="surface mb-lg">
-          <h2 style={{ borderBottom: '1px solid var(--outline-variant)', paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
-            Change Request History
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-            {project.changeRequests.map((cr) => (
-              <div key={cr.id} style={{
-                padding: 'var(--space-md)',
-                backgroundColor: 'var(--surface-container-low)',
-                border: '1px solid var(--outline-variant)',
-                borderLeft: cr.status === 'approved' ? '4px solid #10b981' : cr.status === 'rejected' ? '4px solid #ef4444' : '4px solid #fbbf24'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontSize: '13px', fontWeight: '600' }}>CR-{cr.id.slice(-8)}</p>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--on-surface-variant)' }}>
-                      Submitted: {new Date(cr.submittedAt).toLocaleDateString()} by {cr.submittedBy}
-                    </p>
-                  </div>
-                  <span style={{
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    padding: '4px 8px',
-                    backgroundColor: cr.status === 'approved' ? '#10b981' : cr.status === 'rejected' ? '#ef4444' : '#fbbf24',
-                    color: 'white',
-                    textTransform: 'capitalize'
-                  }}>
-                    {cr.status}
-                  </span>
-                </div>
-                <p style={{ margin: '8px 0 4px 0', fontSize: '12px' }}>
-                  <strong>Reason:</strong> {cr.reason}
-                </p>
-                {cr.revisionNotes && (
-                  <p style={{ margin: '4px 0', fontSize: '12px', color: 'var(--on-surface-variant)' }}>
-                    {cr.revisionNotes}
-                  </p>
-                )}
-                {cr.status !== 'pending-ccb' && (
-                  <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'var(--on-surface-variant)' }}>
-                    Reviewed: {new Date(cr.reviewedAt).toLocaleDateString()} by {cr.reviewedBy}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ACTIVITY LOG */}
-      {project.activityTimeline && project.activityTimeline.length > 0 && (
-        <div className="surface mb-lg">
-          <h2 style={{ borderBottom: '1px solid var(--outline-variant)', paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
-            Activity Log
-          </h2>
-          <div className="activity-log">
-            {project.activityTimeline.slice().reverse().map((log, idx) => (
-              <div key={idx} className="activity-log-entry">
-                <div className="activity-log-time">
-                  {new Date(log.timestamp).toLocaleString()}
-                </div>
-                <div className="activity-log-action">
-                  <strong>{log.action}</strong>
-                  {log.notes && <div style={{ marginTop: '4px', fontSize: '12px', color: 'var(--on-surface-variant)' }}>{log.notes}</div>}
-                  {log.reason && <div style={{ marginTop: '4px', fontSize: '12px', color: 'var(--on-surface-variant)' }}>{log.reason}</div>}
-                </div>
-                <div className="activity-log-meta">
-                  {log.user}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* BA GAPS */}
       {project.baGaps && project.baGaps.length > 0 && (
@@ -778,54 +632,6 @@ export default function ProjectDetail() {
         </div>
       )}
 
-      {/* BA PROCESS FLOW */}
-      {project.baProcessFlow && (
-        <div className="surface mb-lg">
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            borderBottom: '1px solid var(--outline-variant)',
-            paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-lg)'
-          }}>
-            <h2>Process Flow</h2>
-            <span style={{
-              fontSize: '11px', fontWeight: '600', padding: '4px 8px',
-              backgroundColor: 'var(--outline-variant)', textTransform: 'uppercase'
-            }}>
-              BA Interpretation
-            </span>
-          </div>
-          <p className="body-sm" style={{ color: 'var(--on-surface-variant)', marginBottom: 'var(--space-md)' }}>
-            The BA Agent's interpretation of the business process described in the PDD.
-          </p>
-          <div
-            id="ba-process-flow-diagram"
-            style={{
-              border: '1px solid var(--outline-variant)',
-              padding: 'var(--space-md)',
-              backgroundColor: 'var(--surface-container-low)',
-              overflowX: 'auto',
-              minHeight: '200px'
-            }}
-          >
-            {project.baProcessFlow && (
-              <div className="mermaid">
-                {project.baProcessFlow}
-              </div>
-            )}
-            {!project.baProcessFlow && (
-              <div style={{ color: 'var(--on-surface-variant)', fontSize: '14px', textAlign: 'center', paddingTop: '60px' }}>
-                (No process flow diagram yet)
-              </div>
-            )}
-            {!mermaidRendered && (
-              <p style={{ color: 'var(--on-surface-variant)', fontSize: '13px' }}>
-                Rendering diagram...
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* PENDING CCB APPROVALS */}
       {project.changeRequests && project.changeRequests.some(cr => cr.status === 'pending-ccb') && (
         <div className="surface mb-lg">
@@ -884,7 +690,7 @@ export default function ProjectDetail() {
         const pddReviewStarted = phaseStatus('pdd-review') !== 'pending';
         const approvedCrCount = (project.changeRequests || []).filter(cr => cr.status === 'approved').length;
         const computedPddVersions = Math.max(
-          (project.pddVersions?.length || 0),
+          project.pddVersions || 0,
           (pddReviewStarted ? 1 : 0) + approvedCrCount
         );
 
@@ -1198,26 +1004,12 @@ export default function ProjectDetail() {
             status: 'approved'
           });
         }
-        if (project.finalPddPath) {
-          derivedArtifacts.push({
-            name: 'Final PDD (BA Synthesised)',
-            type: 'html',
-            phase: 'BA Finalization',
-            size: 'HTML',
-            uploadedDate: project.finalPddGeneratedAt
-              ? new Date(project.finalPddGeneratedAt).toISOString().slice(0, 10)
-              : artifactDate,
-            uploadedBy: 'BA Agent',
-            status: 'approved',
-            isFinalPdd: true
-          });
-        }
         if (phaseStatus('sdd') !== 'pending') {
           derivedArtifacts.push({
             name: 'Solution Design Document (SDD)',
-            type: 'pdf',
+            type: 'docx',
             phase: 'SDD',
-            size: '2.1 MB',
+            size: '— generated on download —',
             uploadedDate: artifactDate,
             uploadedBy: 'Architect Agent',
             status: phaseStatus('sdd') === 'completed' ? 'approved' : 'in-progress'
@@ -1226,9 +1018,9 @@ export default function ProjectDetail() {
         if (phaseStatus('tdd') !== 'pending') {
           derivedArtifacts.push({
             name: 'Technical Design Document (TDD)',
-            type: 'pdf',
+            type: 'docx',
             phase: 'TDD',
-            size: '1.8 MB',
+            size: '— generated on download —',
             uploadedDate: artifactDate,
             uploadedBy: 'Tech Lead Agent',
             status: phaseStatus('tdd') === 'completed' ? 'approved' : 'in-progress'
@@ -1282,108 +1074,72 @@ export default function ProjectDetail() {
         const allArtifacts = [...(project.artifacts || []), ...derivedArtifacts];
 
         const handleDownloadArtifact = async (artifact) => {
-          // Special handling for original PDD file download
-          if (artifact.name === 'Process Definition Document (PDD)') {
-            try {
-              const response = await fetch(`/api/projects/${id}/pdd-download`);
-              if (!response.ok) {
-                throw new Error('Failed to download PDD');
-              }
-              const blob = await response.blob();
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              // Get filename from Content-Disposition header or use default
-              const contentDisposition = response.headers.get('content-disposition');
-              const filename = contentDisposition
-                ? contentDisposition.split('filename=')[1].replace(/"/g, '')
-                : `PDD-${project.name}.txt`;
-              a.download = filename;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              setTimeout(() => URL.revokeObjectURL(url), 0);
-            } catch (err) {
-              alert('Download failed: ' + err.message);
+          // Server-generated artifacts: hit the API and stream the real docx.
+          const serverGenerated = {
+            'Approved Final PDD': {
+              path: `/api/projects/${id}/approved-pdd`,
+              fallbackName: `Approved_PDD_${(project.name || 'Project').replace(/[^a-z0-9_\-]+/gi, '_')}.docx`,
+              recovery:
+                'To recover: open Change Request, attach the original .docx PDD, ' +
+                'and re-submit. The next download will use the freshly uploaded file.'
+            },
+            'Solution Design Document (SDD)': {
+              path: `/api/projects/${id}/sdd`,
+              fallbackName: `SDD_${(project.name || 'Project').replace(/[^a-z0-9_\-]+/gi, '_')}.docx`,
+              recovery:
+                'To recover: re-run the Architect phase (or run scripts/regenerate-sdd.js), ' +
+                'then download again.'
+            },
+            'Technical Design Document (TDD)': {
+              path: `/api/projects/${id}/tdd`,
+              fallbackName: `TDD_${(project.name || 'Project').replace(/[^a-z0-9_\-]+/gi, '_')}.docx`,
+              recovery:
+                'To recover: re-run the Tech Lead phase (or run scripts/regenerate-tdd.js), ' +
+                'then download again.'
             }
-            return;
-          }
+          };
 
-          // Special handling for Final PDD (real file download)
-          if (artifact.isFinalPdd) {
-            setFinalPddDownloading(true);
+          const server = serverGenerated[artifact.name];
+          if (server) {
             try {
-              const { getFinalPdd } = await import('../api');
-              const blob = await getFinalPdd(id);
+              const resp = await fetch(server.path);
+              if (!resp.ok) {
+                const errBody = await resp.json().catch(() => ({}));
+                throw new Error(errBody.error || `Server returned ${resp.status}`);
+              }
+              const blob = await resp.blob();
+              const cd = resp.headers.get('content-disposition') || '';
+              const m = /filename="([^"]+)"/.exec(cd);
+              const fileName = (m && m[1]) || server.fallbackName;
               const url = URL.createObjectURL(blob);
               const a = document.createElement('a');
               a.href = url;
-              a.download = `Final-PDD-${(project.name || 'project').replace(/[^a-z0-9-]/gi, '_')}.html`;
+              a.download = fileName;
               document.body.appendChild(a);
               a.click();
               document.body.removeChild(a);
               setTimeout(() => URL.revokeObjectURL(url), 0);
+              return;
             } catch (err) {
-              alert('Download failed: ' + err.message);
-            } finally {
-              setFinalPddDownloading(false);
+              alert(
+                `Could not generate "${artifact.name}":\n\n${err.message}\n\n${server.recovery}`
+              );
+              return;
             }
-            return;
           }
 
           const safeBase = (artifact.name || 'artifact').replace(/[^a-z0-9-_]+/gi, '_');
-
-          // Build content based on artifact type
-          let lines = [
+          const lines = [
             `Project:       ${project.name}`,
             `Project ID:    ${project.id || 'N/A'}`,
             `Phase:         ${artifact.phase}`,
             `Status:        ${artifact.status}`,
+            `Reported Size: ${artifact.size}`,
             `Uploaded:      ${artifact.uploadedDate} by ${artifact.uploadedBy}`,
-            ''
+            '',
+            'Note: This is a placeholder document generated by the A-ADLC Platform.',
+            'Backend integration with real artifact storage is pending.'
           ];
-
-          // Add actual content based on artifact type
-          console.log('Downloading:', artifact.name);
-
-          if (artifact.name === 'Process Definition Document (PDD)') {
-            lines.push('PROCESS DEFINITION DOCUMENT');
-            lines.push('============================');
-            lines.push('');
-            if (project.description) {
-              lines.push('DESCRIPTION:');
-              lines.push(project.description);
-              lines.push('');
-            }
-            if (project.scope) {
-              lines.push('SCOPE:');
-              lines.push(project.scope);
-              lines.push('');
-            }
-            if (project.objectives) {
-              lines.push('OBJECTIVES:');
-              lines.push(project.objectives);
-              lines.push('');
-            }
-            if (project.criteria) {
-              lines.push('SUCCESS CRITERIA:');
-              lines.push(project.criteria);
-              lines.push('');
-            }
-            console.log('Added PDD content to download');
-          } else if (artifact.name === 'BA Gap Analysis Report' && project.baGaps?.length > 0) {
-            lines.push('BA REVIEW FINDINGS');
-            lines.push('=================');
-            lines.push('');
-            project.baGaps.forEach((gap, idx) => {
-              lines.push(`Question ${idx + 1} (${gap.category || 'General'}) - ${gap.complexity || 'medium'} complexity:`);
-              lines.push(`${gap.question}`);
-              lines.push('');
-            });
-            console.log('Added', project.baGaps.length, 'gaps to download');
-          } else {
-            lines.push('Note: This is a document generated by the AASDI Platform.');
-          }
 
           const buildPdf = (title, bodyLines) => {
             const esc = (s) => String(s)
@@ -1761,14 +1517,12 @@ export default function ProjectDetail() {
                   <input
                     type="text"
                     placeholder="Bug Title"
-                    value={bugTitle}
-                    onChange={(e) => setBugTitle(e.target.value)}
                     style={{ padding: '8px 12px', border: '1px solid var(--outline-variant)', fontFamily: 'Inter' }}
                   />
-                  <RichTextEditor
-                    value={bugDescription}
-                    onChange={setBugDescription}
+                  <textarea
                     placeholder="Bug Description (what was the expected behavior vs actual)"
+                    rows="4"
+                    style={{ padding: '8px 12px', border: '1px solid var(--outline-variant)', fontFamily: 'Inter', resize: 'vertical' }}
                   />
                   <select style={{ padding: '8px 12px', border: '1px solid var(--outline-variant)', fontFamily: 'Inter' }}>
                     <option>Select Severity...</option>
@@ -2031,7 +1785,7 @@ export default function ProjectDetail() {
       </div>
 
       <footer>
-        Project Details · AASDI Platform
+        Project Details · A-ADLC Platform
       </footer>
     </div>
   );

@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getProject, submitJob } from '../api';
-import RichTextEditor from '../components/RichTextEditor';
 
 function getTemplateResponse(gap) {
   const templates = {
@@ -19,30 +18,17 @@ function getTemplateResponse(gap) {
 export default function GapResponse() {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const mounted = useRef(true);
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [responses, setResponses] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const [processFlowApproval, setProcessFlowApproval] = useState('');
-  const [processFlowComments, setProcessFlowComments] = useState('');
-  const [diagramSvg, setDiagramSvg] = useState(null);
-  const [diagramError, setDiagramError] = useState(null);
+  const [revisedPddFile, setRevisedPddFile] = useState(null);
+  const [revisionNotes, setRevisionNotes] = useState('');
 
   useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!mounted.current) return;
-
     getProject(projectId)
       .then(p => {
-        if (!mounted.current) return;
         setProject(p);
         // Initialize responses with template text
         const initialResponses = {};
@@ -53,12 +39,8 @@ export default function GapResponse() {
         }
         setResponses(initialResponses);
       })
-      .catch(err => {
-        if (mounted.current) setError(err.message);
-      })
-      .finally(() => {
-        if (mounted.current) setLoading(false);
-      });
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
   }, [projectId]);
 
   const handleResponseChange = (gapId, value) => {
@@ -69,17 +51,15 @@ export default function GapResponse() {
   };
 
   const allAnswered = project?.baGaps?.every(g => responses[g.id]?.trim());
-  const diagramApprovalValid = processFlowApproval !== '';
-  const canSubmit = allAnswered && diagramApprovalValid;
 
   const handleSaveDraft = async () => {
     try {
       setSubmitting(true);
+      // Save as draft without submitting
       await submitJob(projectId, 'save-gap-responses', {
         projectId,
         btResponses: responses,
-        processFlowApproval,
-        processFlowComments,
+        revisionNotes,
         isDraft: true,
         savedAt: new Date().toISOString()
       });
@@ -98,18 +78,15 @@ export default function GapResponse() {
       return;
     }
 
-    if (!diagramApprovalValid) {
-      alert('Please approve or comment on the Process Flow Diagram');
-      return;
-    }
-
     try {
       setSubmitting(true);
+      // Submit job to mark BA review as complete with responses
       await submitJob(projectId, 'submit-gap-responses', {
         projectId,
         btResponses: responses,
-        processFlowApproval,
-        processFlowComments,
+        revisedPddFileName: revisedPddFile?.name || null,
+        revisedPddFileSize: revisedPddFile?.size || null,
+        revisionNotes,
         isDraft: false,
         respondedAt: new Date().toISOString(),
         submittedBy: 'BT Team'
@@ -123,27 +100,6 @@ export default function GapResponse() {
       setSubmitting(false);
     }
   };
-
-  // Render Mermaid diagram when process flow becomes available
-  useEffect(() => {
-    if (!project?.baProcessFlow || !mounted.current) return;
-    if (!window.mermaid) return;
-
-    setDiagramSvg(null);
-    setDiagramError(null);
-
-    const diagramId = `mermaid-${Date.now()}`;
-    window.mermaid.render(diagramId, project.baProcessFlow)
-      .then(({ svg }) => {
-        if (!mounted.current) return;
-        setDiagramSvg(svg);
-      })
-      .catch(err => {
-        if (!mounted.current) return;
-        console.error('Mermaid render error:', err);
-        setDiagramError(project.baProcessFlow);
-      });
-  }, [project?.baProcessFlow]);
 
   if (loading) return <div className="container" style={{ padding: 'var(--space-xl)' }}>Loading...</div>;
   if (error) return <div className="container" style={{ padding: 'var(--space-xl)', color: 'var(--negative)' }}>Error: {error}</div>;
@@ -161,7 +117,7 @@ export default function GapResponse() {
       <div className="border-b pb-md mb-lg">
         <h1>{project.name}</h1>
         <p className="body-lg mt-md" style={{ color: 'var(--on-surface-variant)', maxWidth: '600px' }}>
-          Respond to BA Agent questions and approve the Process Flow Diagram
+          Respond to BA Agent questions and submit a revised PDD document
         </p>
       </div>
 
@@ -198,88 +154,107 @@ export default function GapResponse() {
               </div>
             </div>
 
+            {(gap.pddReference || gap.answerHint || gap.impactIfUnanswered) && (
+              <div style={{
+                padding: 'var(--space-md)',
+                marginBottom: 'var(--space-md)',
+                backgroundColor: 'var(--surface-container-low)',
+                borderLeft: '3px solid var(--primary-container)'
+              }}>
+                {gap.pddReference && (
+                  <p style={{ margin: '0 0 8px 0', fontSize: '12px' }}>
+                    <strong style={{ textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--on-surface-variant)' }}>PDD Reference:</strong>{' '}
+                    {gap.pddReference}
+                  </p>
+                )}
+                {gap.answerHint && (
+                  <p style={{ margin: '0 0 8px 0', fontSize: '12px' }}>
+                    <strong style={{ textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--on-surface-variant)' }}>Expected Answer:</strong>{' '}
+                    {gap.answerHint}
+                  </p>
+                )}
+                {gap.impactIfUnanswered && (
+                  <p style={{ margin: 0, fontSize: '12px' }}>
+                    <strong style={{ textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--on-surface-variant)' }}>Impact if Unanswered:</strong>{' '}
+                    {gap.impactIfUnanswered}
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="form-group">
               <label className="form-label">BT Response *</label>
               <div style={{ fontSize: '12px', color: 'var(--on-surface-variant)', marginBottom: '8px' }}>
                 Template pre-filled below. Edit to provide your specific response.
               </div>
-              <RichTextEditor
+              <textarea
                 value={responses[gap.id] || ''}
-                onChange={(value) => handleResponseChange(gap.id, value)}
-                placeholder="Enter your response here..."
+                onChange={(e) => handleResponseChange(gap.id, e.target.value)}
+                rows="6"
+                style={{ fontFamily: 'Geist, sans-serif', fontSize: '14px' }}
               />
             </div>
           </div>
         ))}
 
         <div className="surface">
-          <h3 style={{ marginBottom: 'var(--space-lg)' }}>Process Flow Diagram Review</h3>
-
-          {!project?.baProcessFlow ? (
-            <div className="callout" style={{ marginBottom: 'var(--space-lg)' }}>
-              <span className="material-symbols-outlined callout-icon">schedule</span>
-              <div className="callout-content">
-                <div className="callout-title">Waiting for diagram...</div>
-                <div className="callout-text">
-                  The BA Agent is generating the Process Flow Diagram based on your requirements. Please check back in a moment.
-                </div>
-              </div>
+          <h3 style={{ marginBottom: 'var(--space-lg)' }}>Revised PDD Document (Optional)</h3>
+          <div className="callout">
+            <span className="material-symbols-outlined callout-icon">info</span>
+            <div className="callout-content">
+              <div className="callout-title">Upload now or submit via Change Request later</div>
+              <div className="callout-text">You can upload a revised PDD here, or submit it later through the Change Request Form. Either way works.</div>
             </div>
-          ) : (
-            <>
-              <div style={{ marginBottom: 'var(--space-lg)', padding: 'var(--space-md)', backgroundColor: 'var(--surface-container-low)', border: '1px solid var(--outline-variant)' }}>
-                <p style={{ fontSize: '12px', fontWeight: '600', marginBottom: '12px', color: 'var(--on-surface-variant)', textTransform: 'uppercase' }}>
-                  Process Flow Diagram
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Upload Revised PDD (V2)</label>
+            <div className="form-hint">Optional. Upload your updated PDD document addressing all BA feedback. You can also submit this later.</div>
+            <div
+              className="file-upload-zone"
+              onClick={() => document.getElementById('revised-pdd-input').click()}
+              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }}
+              onDragLeave={(e) => { e.currentTarget.classList.remove('drag-over'); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.remove('drag-over');
+                if (e.dataTransfer.files.length > 0) {
+                  setRevisedPddFile(e.dataTransfer.files[0]);
+                }
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--primary-container)' }}>cloud_upload</span>
+              <div style={{ textAlign: 'center', marginTop: '8px' }}>
+                <p style={{ fontWeight: '500' }}>Drag and drop or click to upload</p>
+                <p style={{ fontSize: '12px', color: 'var(--on-surface-variant)' }}>PDF, Word, or other document format</p>
+              </div>
+              {revisedPddFile && (
+                <p style={{ marginTop: '12px', fontSize: '12px', color: 'var(--primary-container)', fontWeight: '500' }}>
+                  ✓ {revisedPddFile.name}
                 </p>
-                <div style={{ overflowX: 'auto', minHeight: '300px' }}>
-                  {!diagramSvg && !diagramError && <p style={{ color: 'var(--on-surface-variant)' }}>Rendering diagram...</p>}
-                  {diagramSvg && <div dangerouslySetInnerHTML={{ __html: diagramSvg }} />}
-                  {diagramError && <pre style={{ fontSize: '12px', color: '#666', whiteSpace: 'pre-wrap' }}>{diagramError}</pre>}
-                </div>
-              </div>
-
-              <div style={{ marginBottom: 'var(--space-lg)' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: 'var(--on-surface-variant)', textTransform: 'uppercase' }}>
-                  Your Review *
-                </label>
-                <div style={{ display: 'flex', gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                    <input
-                      type="radio"
-                      name="processFlowApproval"
-                      value="approve"
-                      checked={processFlowApproval === 'approve'}
-                      onChange={(e) => setProcessFlowApproval(e.target.value)}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <span>Approve</span>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                    <input
-                      type="radio"
-                      name="processFlowApproval"
-                      value="approve-with-comments"
-                      checked={processFlowApproval === 'approve-with-comments'}
-                      onChange={(e) => setProcessFlowApproval(e.target.value)}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <span>Approve with Comments</span>
-                  </label>
-                </div>
-              </div>
-
-              {processFlowApproval === 'approve-with-comments' && (
-                <div className="form-group">
-                  <label className="form-label">Your Comments</label>
-                  <RichTextEditor
-                    value={processFlowComments}
-                    onChange={setProcessFlowComments}
-                    placeholder="Provide any feedback on the Process Flow Diagram for the BA Agent to incorporate..."
-                  />
-                </div>
               )}
-            </>
-          )}
+            </div>
+            <input
+              id="revised-pdd-input"
+              type="file"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                if (e.target.files.length > 0) {
+                  setRevisedPddFile(e.target.files[0]);
+                }
+              }}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Revision Notes</label>
+            <textarea
+              value={revisionNotes}
+              onChange={(e) => setRevisionNotes(e.target.value)}
+              placeholder="Brief summary of changes made to address BA feedback..."
+              rows="3"
+            />
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
@@ -290,13 +265,13 @@ export default function GapResponse() {
             style={{ opacity: submitting ? 0.5 : 1, cursor: submitting ? 'not-allowed' : 'pointer' }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '18px', marginRight: '4px' }}>save</span>
-            Save Draft
+            Save Draft Response
           </button>
           <button
             className="btn btn-primary"
             onClick={handleSubmit}
-            disabled={submitting || !canSubmit}
-            style={{ opacity: (submitting || !canSubmit) ? 0.5 : 1, cursor: (submitting || !canSubmit) ? 'not-allowed' : 'pointer' }}
+            disabled={submitting || !allAnswered}
+            style={{ opacity: (submitting || !allAnswered) ? 0.5 : 1, cursor: (submitting || !allAnswered) ? 'not-allowed' : 'pointer' }}
           >
             {submitting ? 'Processing...' : (
               <>

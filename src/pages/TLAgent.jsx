@@ -132,7 +132,7 @@ export default function TLAgent() {
       </div>
 
       <footer>
-        Tech Lead Agent · Technical Decomposition Phase · AASDI Platform
+        Tech Lead Agent · Technical Decomposition Phase · A-ADLC Platform
       </footer>
     </div>
   );

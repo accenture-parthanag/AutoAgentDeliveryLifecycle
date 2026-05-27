@@ -151,7 +151,7 @@ export default function ArchAgent() {
       </div>
 
       <footer>
-        Architect Agent · Solution Architecture Phase · AASDI Platform
+        Architect Agent · Solution Architecture Phase · A-ADLC Platform
       </footer>
     </div>
   );

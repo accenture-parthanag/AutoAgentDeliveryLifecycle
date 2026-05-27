@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * ASDL Platform - Database Cleanup Script
+ * A-ADLC Platform - Database Cleanup Script
  * Clears all collections from the MongoDB database to start fresh
  */
 

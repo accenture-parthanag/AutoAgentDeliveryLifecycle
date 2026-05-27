@@ -24,7 +24,7 @@ export default function Dashboard() {
             pddStatus: pddApprovedPhase?.status === 'completed' ? 'approved' : 'pending',
             lastUpdated: new Date(p.updatedAt).toISOString().split('T')[0],
             btCollaborator: p.btLead,
-            pddVersions: (p.pddVersions?.length || 0),
+            pddVersions: p.pddVersions || 0,
             changeRequests: p.changeRequests || []
           };
         });
@@ -54,7 +54,7 @@ export default function Dashboard() {
           <div>
             <h1>Projects</h1>
             <p className="body-lg mt-md" style={{ color: 'var(--on-surface-variant)', maxWidth: '600px' }}>
-              View all automation projects and their progress through the AASDI lifecycle. Click on any project to see detailed phase progress.
+              View all automation projects and their progress through the A-ADLC lifecycle. Click on any project to see detailed phase progress.
             </p>
           </div>
           <button
@@ -220,7 +220,7 @@ export default function Dashboard() {
       </div>
 
       <footer>
-        Projects · AASDI Platform
+        Projects · A-ADLC Platform
       </footer>
     </div>
   );

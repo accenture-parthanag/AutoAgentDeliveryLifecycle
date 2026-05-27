@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * AASDI Platform - Multi-Process Launcher
+ * A-ADLC Platform - Multi-Process Launcher
  * Starts Frontend, Backend, and BA Agent in one command
  *
  * Usage: node start-all.js
@@ -73,7 +73,7 @@ if (!fs.existsSync(path.join(projectDir, 'node_modules'))) {
 
 // Clear console and show header
 console.clear();
-header('AASDI Platform - Starting All Processes');
+header('A-ADLC Platform - Starting All Processes');
 
 log('✓ Prerequisites checked', 'green');
 log('');

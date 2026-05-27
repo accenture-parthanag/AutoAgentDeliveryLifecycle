@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getProject, submitJob, getProjects } from '../api';
-import RichTextEditor from '../components/RichTextEditor';
 
 export default function ChangeRequestForm() {
   const { projectId } = useParams();
@@ -46,13 +45,8 @@ export default function ChangeRequestForm() {
       return;
     }
 
-    if (!pddFile) {
-      alert('Please upload the updated PDD document');
-      return;
-    }
-
-    if (!changeNotes) {
-      alert('Please describe the changes in the notes field');
+    if (!changeNotes && !pddFile) {
+      alert('Please provide change notes or upload a PDD document');
       return;
     }
 
@@ -104,6 +98,7 @@ export default function ChangeRequestForm() {
   };
 
   const changeReasons = [
+    { value: 'ba-feedback-response', label: 'Response to BA Feedback' },
     { value: 'scope-change', label: 'Project Scope Change' },
     { value: 'requirement-update', label: 'Business Requirement Update' },
     { value: 'stakeholder-input', label: 'Stakeholder/Customer Input' },
@@ -125,18 +120,6 @@ export default function ChangeRequestForm() {
         <p className="body-lg mt-md" style={{ color: 'var(--on-surface-variant)', maxWidth: '600px' }}>
           Submit change details for Change Control Board (CCB) review and approval
         </p>
-      </div>
-
-      <div style={{ marginBottom: 'var(--space-lg)' }}>
-        <div className="callout">
-          <span className="material-symbols-outlined callout-icon">info</span>
-          <div className="callout-content">
-            <div className="callout-title">Change Requests are for post-approval requirement changes</div>
-            <div className="callout-text">
-              Submit Change Requests when business requirements change after the PDD has been approved. All CRs require CCB approval before processing.
-            </div>
-          </div>
-        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
@@ -193,20 +176,21 @@ export default function ChangeRequestForm() {
 
               <div className="form-group">
                 <label className="form-label">Change Notes & Details</label>
-                <RichTextEditor
+                <textarea
                   value={changeNotes}
-                  onChange={setChangeNotes}
+                  onChange={(e) => setChangeNotes(e.target.value)}
                   placeholder="Describe what changed in this PDD version..."
+                  rows="4"
                 />
               </div>
             </div>
 
             <div className="surface">
-              <h3 style={{ marginBottom: 'var(--space-lg)' }}>Updated PDD Document</h3>
+              <h3 style={{ marginBottom: 'var(--space-lg)' }}>Upload New PDD (Optional)</h3>
 
               <div className="form-group">
-                <label className="form-label">PDD Document *</label>
-                <div className="form-hint">Upload the updated PDD document reflecting the requirement changes</div>
+                <label className="form-label">PDD Document</label>
+                <div className="form-hint">Upload a new or revised PDD document (optional - only if you have an updated PDD)</div>
                 <div
                   className="file-upload-zone"
                   onClick={() => document.getElementById('pdd-file-input').click()}
@@ -248,8 +232,8 @@ export default function ChangeRequestForm() {
               <button
                 className="btn btn-primary"
                 onClick={handleSubmit}
-                disabled={submitting || !pddFile || !changeReason || !changeNotes}
-                style={{ opacity: (submitting || !pddFile || !changeReason || !changeNotes) ? 0.5 : 1, cursor: (submitting || !pddFile || !changeReason || !changeNotes) ? 'not-allowed' : 'pointer' }}
+                disabled={submitting || !pddFile || !changeReason}
+                style={{ opacity: (submitting || !pddFile || !changeReason) ? 0.5 : 1, cursor: (submitting || !pddFile || !changeReason) ? 'not-allowed' : 'pointer' }}
               >
                 {submitting ? 'Submitting...' : 'Submit Change Request'}
               </button>

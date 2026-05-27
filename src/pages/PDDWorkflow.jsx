@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createProject, submitJob, getProject } from '../api';
 import mammoth from 'mammoth';
-import RichTextEditor from '../components/RichTextEditor';
 
 function categoryToClass(category) {
   return category.toLowerCase().replace(/\s+/g, '-');
@@ -244,10 +243,11 @@ export default function PDDWorkflow() {
 
           <div className="form-group">
             <label className="form-label">Description *</label>
-            <RichTextEditor
+            <textarea
               value={projectInfo.description}
-              onChange={(value) => setProjectInfo({ ...projectInfo, description: value })}
+              onChange={(e) => setProjectInfo({ ...projectInfo, description: e.target.value })}
               placeholder="Brief description of the project..."
+              rows="3"
             />
           </div>
 
@@ -255,28 +255,31 @@ export default function PDDWorkflow() {
 
           <div className="form-group">
             <label className="form-label">Scope *</label>
-            <RichTextEditor
+            <textarea
               value={projectInfo.scope}
-              onChange={(value) => setProjectInfo({ ...projectInfo, scope: value })}
+              onChange={(e) => setProjectInfo({ ...projectInfo, scope: e.target.value })}
               placeholder="Define the scope of this project..."
+              rows="3"
             />
           </div>
 
           <div className="form-group">
             <label className="form-label">Business Objectives *</label>
-            <RichTextEditor
+            <textarea
               value={projectInfo.objectives}
-              onChange={(value) => setProjectInfo({ ...projectInfo, objectives: value })}
+              onChange={(e) => setProjectInfo({ ...projectInfo, objectives: e.target.value })}
               placeholder="What are the primary business objectives?"
+              rows="3"
             />
           </div>
 
           <div className="form-group">
             <label className="form-label">Success Criteria *</label>
-            <RichTextEditor
+            <textarea
               value={projectInfo.criteria}
-              onChange={(value) => setProjectInfo({ ...projectInfo, criteria: value })}
+              onChange={(e) => setProjectInfo({ ...projectInfo, criteria: e.target.value })}
               placeholder="How will we measure success?"
+              rows="3"
             />
           </div>
 
@@ -423,10 +426,12 @@ export default function PDDWorkflow() {
 
                 <div className="gap-response-area">
                   <label className="form-label">Your Response *</label>
-                  <RichTextEditor
+                  <textarea
                     value={responses[gap.id]?.answer || ''}
-                    onChange={(value) => handleGapResponse(gap.id, 'answer', value)}
+                    onChange={(e) => handleGapResponse(gap.id, 'answer', e.target.value)}
                     placeholder="Provide your response..."
+                    rows="4"
+                    style={{ width: '100%', padding: 'var(--space-sm)', border: '1px solid var(--outline-variant)', marginBottom: 'var(--space-sm)' }}
                   />
 
                   <label className="form-label">Confidence Level</label>
@@ -571,7 +576,7 @@ export default function PDDWorkflow() {
       )}
 
       <footer style={{ marginTop: 'var(--space-xl)', paddingTop: 'var(--space-lg)', borderTop: '1px solid var(--outline-variant)' }}>
-        PDD Workflow · AASDI Platform
+        PDD Workflow · A-ADLC Platform
       </footer>
     </div>
   );
