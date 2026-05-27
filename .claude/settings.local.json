@@ -58,7 +58,9 @@
       "PowerShell(node scripts\\\\list-routes.js)",
       "PowerShell(git clone https://github.com/ParthaNag/editorial-executive.git \"$env:USERPROFILE\\\\.claude\\\\skills\\\\editorial-executive\")",
       "Bash(bash *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git commit -m 'Update local Claude settings configuration *)"
     ]
   }
 }
