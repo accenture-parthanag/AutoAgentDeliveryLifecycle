@@ -56,11 +56,23 @@
       "PowerShell(node scripts\\\\verify-doc-endpoints.js)",
       "PowerShell(node -e \"const r = require\\('./server/routes/projects'\\); const stack = r.stack || []; const list = stack.map\\(l => `${Object.keys\\(l.route?.methods || {}\\).join\\(','\\).toUpperCase\\(\\)} ${l.route?.path}`\\).filter\\(s => s.trim\\(\\)\\); console.log\\('Registered routes on projects router:'\\); list.forEach\\(l => console.log\\('  ' + l\\)\\);\")",
       "PowerShell(node scripts\\\\list-routes.js)",
-      "PowerShell(git clone https://github.com/ParthaNag/editorial-executive.git \"$env:USERPROFILE\\\\.claude\\\\skills\\\\editorial-executive\")",
-      "Bash(bash *)",
+      "PowerShell(python --version; python -c \"import docx; print\\('python-docx available:', docx.__version__\\)\" 2>&1)",
+      "PowerShell(py *)",
+      "PowerShell(try { $word = New-Object -ComObject Word.Application; Write-Host \"Word COM available: Version $\\($word.Version\\)\"; $word.Quit\\(\\) } catch { Write-Host \"Word COM not available: $_\" })",
+      "PowerShell(& \"C:\\\\Users\\\\nitin.varshneya\\\\Downloads\\\\Github_Project\\\\GraphicAutonumber_Solution\\\\_build_customizations.ps1\")",
+      "PowerShell($zip = \"C:\\\\Users\\\\nitin.varshneya\\\\Downloads\\\\Github_Project\\\\acndev_GraphicAutonumber_1_0_0_1.zip\"; Add-Type -AssemblyName System.IO.Compression.FileSystem; $archive = [System.IO.Compression.ZipFile]::OpenRead\\($zip\\); $archive.Entries | Select-Object FullName, Length | Format-Table -AutoSize; $archive.Dispose\\(\\))",
+      "PowerShell($msapp = \"C:\\\\Users\\\\nitin.varshneya\\\\Downloads\\\\Github_Project\\\\_extracted\\\\CanvasApps\\\\acndev_graphictrackerapp_a1b2c_DocumentUri.msapp\"; Add-Type -AssemblyName System.IO.Compression.FileSystem; try { $archive = [System.IO.Compression.ZipFile]::OpenRead\\($msapp\\); $archive.Entries | Select-Object FullName, Length | Format-Table -AutoSize; $archive.Dispose\\(\\) } catch { Write-Output \"ERROR: $\\($_.Exception.Message\\)\"; Write-Output \"File may not be a valid zip/.msapp archive.\"; $bytes = [System.IO.File]::ReadAllBytes\\($msapp\\) | Select-Object -First 16; Write-Output \\(\"First 16 bytes hex: \" + \\(\\($bytes | ForEach-Object { \"{0:X2}\" -f $_ }\\) -join ' '\\)\\) })",
+      "WebSearch",
+      "PowerShell(Get-Command *)",
+      "PowerShell($machinePath = [System.Environment]::GetEnvironmentVariable\\('Path','Machine'\\); $userPath = [System.Environment]::GetEnvironmentVariable\\('Path','User'\\); $env:Path = \"$machinePath;$userPath\"; & \"C:\\\\Users\\\\nitin.varshneya\\\\Downloads\\\\Github_Project\\\\Build-GraphicAutonumber.ps1\")",
+      "PowerShell(pac canvas *)",
+      "PowerShell(& \"C:\\\\Users\\\\nitin.varshneya\\\\Downloads\\\\Github_Project\\\\Build-GraphicAutonumber.ps1\")",
+      "PowerShell($msapp = \"C:\\\\Users\\\\nitin.varshneya\\\\Downloads\\\\Github_Project\\\\GraphicAutonumber_Solution\\\\CanvasApps\\\\acndev_graphictrackerapp_a1b2c_DocumentUri.msapp\"; Add-Type -AssemblyName System.IO.Compression.FileSystem; $a = [System.IO.Compression.ZipFile]::OpenRead\\($msapp\\); $a.Entries | Sort-Object FullName | ForEach-Object { \"{0,8}  {1}\" -f $_.Length, $_.FullName }; $a.Dispose\\(\\))",
+      "WebFetch(domain:aka.ms)",
+      "WebFetch(domain:go.microsoft.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)",
-      "Bash(git commit -m 'Update local Claude settings configuration *)"
+      "Bash(git commit -m ' *)"
     ]
   }
 }

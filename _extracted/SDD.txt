@@ -1,0 +1,1084 @@
+﻿
+
+SOLUTION DESIGN DOCUMENT
+
+Graphic Autonumber
+
+Generated 2026-05-22 Â· A-ADLC Architect Agent
+Project ID
+6a0ea879bbfc6eb7333fdd6a
+Architecture Style
+low-code-platform
+Components
+8
+Screens designed
+6
+User flows
+3
+Risks identified
+6
+
+
+
+
+1. Solution Overview
+
+The Graphic Autonumber solution is a Microsoft Power Platform application (Power Apps canvas app + Power Automate flows + Dataverse + SharePoint) embedded as a tab in deal-specific Microsoft Teams channels. Primary actors are the Submitter (deal team member or Graphic Designer), the Graphic Designer (production FTE, 262 across Growth Markets/EMEA/Americas), and the Reviewer/Author-SME. The end-to-end journey: a deal team creates a Graphic Tracker for a Teams channel (capturing Opportunity ID, Deal Name, channel link), users add line items that are auto-stamped with a read-only Graphic Control Number in the format `<OppID>.<YY>.<Order>` (e.g., 000007.26.0001), notifications fire to the Designer on submission and 'Updates Needed', and to the Submitter/Author on 'Completed'. BT-confirmed scale: ~58,050 graphics/month with 10â€“20% FY25 growth, â‰¤300 concurrent users, and no peak spikes â€” easily absorbed by the low-code platform.
+
+
+2. Architecture Style
+Style
+low-code-platform
+Rationale
+BT confirmed (Q3) the solution is built on Microsoft Power Platform integrating Teams, Dataverse and SharePoint. BT (Q4) confirmed â‰¤300 users with no peak spikes and 'simple action items by generating numbers and sending emails â€” no complicated logic or APIs', so a custom microservice/event-driven backend would be over-engineering. Power Apps + Dataverse + Power Automate natively delivers the Teams-embedded UI, transactional autonumber storage, RBAC against Teams membership (Q5: 'Team and Channel dropdowns display only Teams/Channels user is part of'), and Outlook email notifications without bespoke infrastructure.
+
+
+3. Components
+Component
+Type
+Responsibility
+Owned Data
+Depends On
+GraphicTrackerCanvasApp
+ui
+Power Apps canvas application embedded as a tab in each deal Teams channel. Renders Landing, Create Tracker, Open Existing Tracker, View Tracker, New Item, and Edit Item screens. Enforces read-only display of the Graphic Control Number and personalised 'Hello <username>' greeting.
+UI state, Active tracker selection, User session context
+DataverseGraphicStore, AutonumberFlow, TeamsMembershipResolver, IdentityProvider
+AutonumberFlow
+workflow
+Power Automate cloud flow triggered on Dataverse row create for a GraphicRequest. Atomically allocates the next 4-digit Order within the (OppId, Year) scope and writes back the formatted GraphicControlNumber. Also triggers the New-Graphic email to the Designer.
+GraphicControlNumber generation logic, OrderSequence allocation
+DataverseGraphicStore, NotificationService
+StatusChangeFlow
+workflow
+Power Automate flow triggered on GraphicRequest.Status modification. Routes 'Updates Needed' emails to the Designer and 'Completed' emails to the Submitter/Author. Respects the per-item 'Email status updates to Author' toggle.
+Status transition routing rules
+DataverseGraphicStore, NotificationService
+DataverseGraphicStore
+data
+System of record for GraphicTracker, GraphicRequest, and OrderSequence tables. Provides ACID transactions, row-level security, and the autonumber column.
+GraphicTracker, GraphicRequest, OrderSequence
+
+SharePointAssetStore
+storage
+Stores completed graphic files, templates, and production materials per deal. Access restricted to assigned deal users; link surfaced in the Power App to guide folder/naming conventions.
+Graphic source files, Templates, Production materials
+IdentityProvider
+NotificationService
+integration
+Power Automate 'Send an email (V2)' Outlook connector. Renders the three PDD email templates (New Graphics, Updates Needed, Completed) and dispatches via Exchange Online.
+Email templates
+IdentityProvider
+TeamsMembershipResolver
+integration
+Microsoft Graph / Teams connector that filters Team and Channel dropdowns to only those the current user is a member of (BT business rule from Q5).
+
+IdentityProvider
+IdentityProvider
+identity
+Azure AD / Entra ID single sign-on. Supplies the signed-in user identity used for 'Submitted by' auto-fill, the 'Hello <username>' greeting, and Teams membership checks.
+User principal
+
+
+
+4. Data Model
+
+
+4.1 GraphicTracker
+
+Purpose: One tracker per deal/opportunity, scoped to a Teams channel.
+
+Primary key: TrackerId
+
+Indexes: Unique(OpportunityId); Index(TeamId, ChannelId)
+Field
+Type
+Required
+Notes
+TrackerId
+string
+Yes
+GUID primary key
+OpportunityId
+string
+Yes
+6-digit Opp ID from assignment note; immutable after creation
+DealName
+string
+Yes
+Free text
+TeamsChannelLink
+string
+Yes
+Deep link to the deal Teams channel
+TeamId
+string
+Yes
+Azure AD group / Team object id
+ChannelId
+string
+Yes
+Teams channel id
+CreatedBy
+ref
+Yes
+FK â†’ SystemUser
+CreatedOn
+datetime
+Yes
+Auto
+
+
+4.2 GraphicRequest
+
+Purpose: One row per graphic line item logged in a tracker. Source of GraphicControlNumber.
+
+Primary key: RequestId
+
+Indexes: Unique(GraphicControlNumber); Index(TrackerId, Status); Index(GraphicDesigner, Status)
+Field
+Type
+Required
+Notes
+RequestId
+string
+Yes
+GUID primary key
+TrackerId
+ref
+Yes
+FK â†’ GraphicTracker
+GraphicControlNumber
+string
+Yes
+Format <OppId>.<YY>.<Order> e.g., 000007.26.0001. Read-only after generation (BT Q2). Populated by AutonumberFlow.
+Title
+string
+Yes
+e.g., 'Overview'
+Status
+enum
+Yes
+Values: New | In Progress | Updates Needed | Completed. Default 'New'.
+GraphicsType
+enum
+Yes
+Basic | Medium | Complex
+Instructions
+string
+No
+Free text
+Section
+string
+No
+Section number in the Word response
+AuthorSmeContact
+string
+No
+Free text contact name
+SubmittedBy
+ref
+Yes
+FK â†’ SystemUser. Auto-filled from current user.
+GraphicDesigner
+ref
+No
+FK â†’ SystemUser; assigned by deal team
+SourceFileControlNumber
+string
+No
+Optional reference to parent graphic when modifying a reusable asset
+EmailStatusUpdatesToAuthor
+bool
+Yes
+Toggle from Edit Item screen. Default true.
+CreatedDate
+datetime
+Yes
+Auto
+ModifiedDate
+datetime
+Yes
+Auto
+ModifiedBy
+ref
+Yes
+FK â†’ SystemUser; auto
+
+
+4.3 OrderSequence
+
+Purpose: Atomic counter that allocates the 4-digit Order portion of the autonumber, scoped per Opportunity+Year to keep numbering chronological and consecutive across designers (PDD pre-process rule).
+
+Primary key: SequenceKey
+
+Indexes: Unique(SequenceKey)
+Field
+Type
+Required
+Notes
+SequenceKey
+string
+Yes
+Composite: <OppId>.<YY> e.g., '000007.26'
+OpportunityId
+string
+Yes
+6-digit
+Year
+string
+Yes
+2-digit YY
+LastOrder
+int
+Yes
+Last allocated order, 0â€“9999. PDD assumption: â‰¤9000 graphics per deal.
+UpdatedOn
+datetime
+Yes
+Auto
+
+
+Sequence allocation strategy
+
+On GraphicRequest create, AutonumberFlow runs synchronously and performs an atomic 'get-or-create + increment' on the OrderSequence row whose SequenceKey = <OppId>.<YY>. The increment uses Dataverse's pessimistic update with optimistic-concurrency retry (If-Match ETag): read LastOrder, compute LastOrder+1, conditional update; on 412 Precondition Failed retry up to 5x with jitter. The new order is left-padded to 4 digits and concatenated as `<OppId>.<YY>.<Order>` into GraphicRequest.GraphicControlNumber, which carries a Unique constraint as a second-line collision guard. Scope is (OpportunityId, Year) â€” not global and not per-tracker â€” so reruns and parallel designers always pull the next consecutive number for that deal-year. The field is sealed read-only after first write (BT Q2).
+
+
+5. UI Specification â€” Screens
+
+
+5.1 Landing Page
+Screen ID
+landing
+Purpose
+Entry point inside the Teams channel tab. Lets the user choose between creating a tracker, opening an existing one, or viewing one.
+Primary actors
+Submitter, Graphic Designer
+Entry points
+Teams channel tab click
+
+
+UI elements
+Element
+Label
+Behavior
+Header
+Hello <username>
+Pulled from Azure AD signed-in user; updates per session
+Button
+Create a New Graphic Tracker
+Navigates to create-tracker screen (PDD rename of 'Create a New List')
+Button
+Add/Update requests in existing Graphics Tracker
+Navigates to view-tracker screen scoped to the current Teams channel
+Button
+Open Existing Graphic Tracker
+Navigates to open-tracker screen (PDD rename of 'View an Existing List')
+Link
+SharePoint folder & naming convention guide
+Opens the deal SharePoint site in a new tab
+
+
+Validation
+
+
+User must be a member of the current Team/Channel to see the tab (enforced by Teams)
+
+
+Wireframe
+
++----------------------------------------------------------+
+
+|  GRAPHIC TRACKER AUTONUMBER          Hello Kuldeep Garud  |
+
++----------------------------------------------------------+
+
+|                                                          |
+
+|   [ Create a New Graphic Tracker                      ]  |
+
+|                                                          |
+
+|   [ Add/Update requests in existing Graphics Tracker  ]  |
+
+|                                                          |
+
+|   [ Open Existing Graphic Tracker                     ]  |
+
+|                                                          |
+
+|   SharePoint folder & naming convention guide  >         |
+
+|                                                          |
+
++----------------------------------------------------------+
+
+
+Referenced PDD visuals
+
+
+
+Figure 1 â€” from PDD (image-001.png)
+
+
+5.2 Create a New Graphic Tracker
+Screen ID
+create-tracker
+Purpose
+Capture the Opportunity ID, Deal Name and Teams channel link that anchor a new tracker.
+Primary actors
+Graphic Designer
+Entry points
+Landing â†’ Create a New Graphic Tracker
+
+
+UI elements
+Element
+Label
+Behavior
+Textbox
+Opportunity ID
+6-digit numeric, required, immutable post-save
+Textbox
+Deal Name
+Required free text
+Dropdown
+Team
+Lists only Teams the current user belongs to (BT Q5)
+Dropdown
+Channel
+Cascades from Team; lists only channels the user belongs to
+Textbox (read-only)
+Teams Channel Link
+Auto-derived from Team+Channel selection
+Button
+Create Tracker
+Submits to Dataverse; on success navigates to view-tracker
+Button
+Cancel
+Back to landing
+
+
+Validation
+
+
+Opportunity ID must be 6 numeric digits
+
+
+Team & Channel dropdowns restricted to user's memberships
+
+
+Opportunity ID must be unique
+
+
+Wireframe
+
++----------------------------------------------------------+
+
+|  < Back        CREATE A NEW GRAPHIC TRACKER              |
+
++----------------------------------------------------------+
+
+|  Opportunity ID *      [ 000007                       ]  |
+
+|  Deal Name *           [ Client ABC Pursuit           ]  |
+
+|  Team *                [ Pursuit Services    v        ]  |
+
+|  Channel *             [ Client-ABC          v        ]  |
+
+|  Teams Channel Link    [ https://teams.../Client-ABC  ]  |
+
+|                        (auto-filled, read-only)          |
+
+|                                                          |
+
+|                       [ Cancel ]   [ Create Tracker ]    |
+
++----------------------------------------------------------+
+
+
+5.3 Open Existing Graphic Tracker
+Screen ID
+open-tracker
+Purpose
+Browse and pick from trackers the user has access to.
+Primary actors
+Submitter, Graphic Designer
+Entry points
+Landing â†’ Open Existing Graphic Tracker
+
+
+UI elements
+Element
+Label
+Behavior
+Search box
+Search by Opportunity ID or Deal Name
+Filters list in real time
+Sort dropdown
+Sort by
+Options: Created Date, Deal Name, Opportunity ID
+Table
+Tracker list
+Columns: Opp ID, Deal Name, Channel, Created By, Created On. Row click â†’ view-tracker
+
+
+Validation
+
+
+Only trackers from Teams/Channels the user belongs to are shown
+
+
+Wireframe
+
++----------------------------------------------------------+
+
+|  < Back        OPEN EXISTING GRAPHIC TRACKER             |
+
++----------------------------------------------------------+
+
+|  Search: [ ABC                ]   Sort by: [ Created v ] |
+
++---------+----------------+----------+---------+---------+
+
+| Opp ID  | Deal Name      | Channel  | Creator | Created |
+
++---------+----------------+----------+---------+---------+
+
+| 000007  | Client ABC     | Client-A | Kuldeep | 22-May  |
+
+| 000012  | Client XYZ     | Client-X | Deepa   | 18-May  |
+
+| 000031  | Client QRS     | Client-Q | Kamna   | 11-May  |
+
++---------+----------------+----------+---------+---------+
+
+
+5.4 View Tracker (Graphic Request List)
+Screen ID
+view-tracker
+Purpose
+Show all graphic requests for the selected tracker; allow Add/Edit and auto-refresh.
+Primary actors
+Submitter, Graphic Designer, Reviewer
+Entry points
+Landing â†’ Add/Update requestsâ€¦; Open Existing â†’ row click; After Create Tracker
+
+
+UI elements
+Element
+Label
+Behavior
+Header
+<Deal Name> â€” Opp <OppId>
+Static context bar
+Button
++ New Item
+Opens new-item screen
+Group-by dropdown
+Group by
+Status | Graphic Designer | Graphics Type
+Sort dropdown
+Sort by
+Created Date | Modified Date | Title | Status
+Table
+Graphic Requests
+Columns: Graphic Control Number (read-only), Title, Status badge, Type, Designer, Submitted By, Modified. Row click â†’ edit-item. Auto-refresh every 30s.
+
+
+State transitions
+
+
+From this list, the designer changes Status: New â†’ In Progress â†’ Updates Needed â†” In Progress â†’ Completed (via edit-item screen)
+
+
+Wireframe
+
++--------------------------------------------------------------+
+
+| Client ABC Pursuit  â€” Opp 000007            [ + New Item ]   |
+
++--------------------------------------------------------------+
+
+| Group by: [ Status v ]    Sort by: [ Created Date v ]        |
+
++--------------------------------------------------------------+
+
+| Graphic Control # | Title    | Status      | Type   | Desgnr |
+
++-------------------+----------+-------------+--------+--------+
+
+| 000007.26.0001    | Overview | In Progress | Medium | Deepa  |
+
+| 000007.26.0002    | Facts    | New         | Basic  | Deepa  |
+
+| 000007.26.0003    | Win Thm  | Completed   | Medium | Deepa  |
+
++--------------------------------------------------------------+
+
+|                                  (auto-refresh every 30s)    |
+
++--------------------------------------------------------------+
+
+
+5.5 New Graphic Request
+Screen ID
+new-item
+Purpose
+Add a new graphic line item. Control Number is generated server-side on save.
+Primary actors
+Submitter, Graphic Designer
+Entry points
+View Tracker â†’ + New Item
+
+
+UI elements
+Element
+Label
+Behavior
+Read-only field
+Graphic Control Number
+Displays 'Auto-generated on save'. After save, populated and locked.
+Textbox
+Title
+Required
+Dropdown
+Graphics Type
+Basic | Medium | Complex
+Textarea
+Instructions
+Free text
+Textbox
+Section
+Optional
+Textbox
+Author/SME/Contact
+Optional
+Read-only field
+Submitted By
+Auto-filled with current user
+People picker
+Graphic Designer
+Optional, restricted to channel members
+Toggle
+Email status updates to Author
+Default ON
+Button
+Save
+Triggers AutonumberFlow â†’ creates row â†’ fires New Graphics email to Designer
+Button
+Cancel
+Returns to view-tracker without save
+
+
+Validation
+
+
+Title required
+
+
+Graphics Type required
+
+
+Status defaults to 'New' (not user-editable on create)
+
+
+State transitions
+
+
+On Save: row Status = New; AutonumberFlow assigns Graphic Control Number
+
+
+Wireframe
+
++--------------------------------------------------------------+
+
+| < Back              NEW GRAPHIC REQUEST                       |
+
++--------------------------------------------------------------+
+
+| Graphic Control Number   | (auto-generated on save)         |
+
+| Title *                  | [ Overview                     ] |
+
+| Graphics Type *          | [ Medium v ]                     |
+
+| Instructions             | [ This is demo.                ] |
+
+|                          | [                              ] |
+
+| Section                  | [ 1                            ] |
+
+| Author/SME/Contact       | [ Kuldeep                      ] |
+
+| Submitted By             | Kuldeep Garud   (read-only)      |
+
+| Graphic Designer         | [ Ramanujam, Deepa     v ]       |
+
+| Email status updates     | [ ON  â¬¤  ]                       |
+
+|   to Author                                                  |
+
+|                              [ Cancel ]   [ Save ]           |
+
++--------------------------------------------------------------+
+
+
+Referenced PDD visuals
+
+
+
+Figure 1 â€” from PDD (image-001.png)
+
+
+5.6 Edit Graphic Request
+Screen ID
+edit-item
+Purpose
+Designer/Reviewer updates status and metadata for an existing item; Control Number is read-only.
+Primary actors
+Graphic Designer, Reviewer
+Entry points
+View Tracker â†’ row click
+
+
+UI elements
+Element
+Label
+Behavior
+Read-only field
+Graphic Control Number
+Locked, copied to clipboard on click (per BT Q2)
+Dropdown
+Status
+New | In Progress | Updates Needed | Completed. Each change fires StatusChangeFlow.
+Textbox
+Source File Control Number
+Optional. Pattern <OppId>.<YY>.<Order> if provided.
+Toggle
+Email status updates to Author
+On/Off; controls whether StatusChangeFlow emails the Author/SME
+Editable fields
+Title, Type, Instructions, Section, Author/SME/Contact, Designer
+All editable except Graphic Control Number and Submitted By
+Button
+Save
+Persists changes; triggers StatusChangeFlow if Status changed
+
+
+Validation
+
+
+Graphic Control Number cannot be modified (BT Q2)
+
+
+Source File Control Number must match the autonumber pattern when provided
+
+
+State transitions
+
+
+In Progress â† New (Designer accepts)
+
+
+Updates Needed â† In Progress (Reviewer requests changes)
+
+
+In Progress â† Updates Needed (Designer reworks)
+
+
+Completed â† In Progress (Designer finishes)
+
+
+Wireframe
+
++--------------------------------------------------------------+
+
+| < Back        EDIT GRAPHIC REQUEST    000007.26.0001 (R/O)   |
+
++--------------------------------------------------------------+
+
+| Title                    | [ Overview                     ] |
+
+| Status *                 | [ In Progress      v ]            |
+
+| Graphics Type            | [ Medium v ]                     |
+
+| Instructions             | [ This is demo.                ] |
+
+| Section                  | [ 1                            ] |
+
+| Source File Ctrl Number  | [ 87654321.24.0023             ] |
+
+| Author/SME/Contact       | [ Kuldeep                      ] |
+
+| Submitted By             | Kuldeep Garud   (read-only)      |
+
+| Graphic Designer         | [ Ramanujam, Deepa     v ]       |
+
+| Email status updates     | [ ON  â¬¤  ]                       |
+
+|   to Author                                                  |
+
+|                              [ Cancel ]   [ Save ]           |
+
++--------------------------------------------------------------+
+
+
+6. User Flows
+
+
+6.1 New Graphic Request Submission & Autonumber Generation
+
+Actor: Submitter
+
+
+1. Submitter opens the Graphic Tracker tab in the deal Teams channel â€” GraphicTrackerCanvasApp loads with 'Hello <username>'.
+
+
+2. Submitter clicks 'Add/Update requests in existing Graphics Tracker' and lands on the view-tracker screen for the deal.
+
+
+3. Submitter clicks '+ New Item' â†’ new-item screen renders. Submitted By auto-fills from IdentityProvider.
+
+
+4. Submitter fills Title, Graphics Type, Instructions, Section, Author/SME, Designer, leaves 'Email status updates to Author' = ON, and clicks Save.
+
+
+5. GraphicTrackerCanvasApp writes a GraphicRequest row to DataverseGraphicStore with Status='New' and GraphicControlNumber=blank.
+
+
+6. AutonumberFlow fires on row-create, atomically increments OrderSequence for key '<OppId>.<YY>', formats '<OppId>.<YY>.<NNNN>' and updates the GraphicRequest row.
+
+
+7. AutonumberFlow then calls NotificationService to send the 'New Graphics for Proposal' email to the Graphic Designer.
+
+
+8. GraphicTrackerCanvasApp auto-refreshes; the new line item appears in view-tracker with the read-only Graphic Control Number populated.
+
+
+Sequence
+
+Submitter           CanvasApp          Dataverse           AutonumberFlow      NotificationSvc     Designer
+
+   |                    |                   |                       |                    |               |
+
+   |--Open Teams tab--->|                   |                       |                    |               |
+
+   |                    |--auth (Entra)---->|                       |                    |               |
+
+   |<--Hello <user>-----|                   |                       |                    |               |
+
+   |--+ New Item------->|                   |                       |                    |               |
+
+   |--Fill & Save------>|                   |                       |                    |               |
+
+   |                    |--Create Row------>|                       |                    |               |
+
+   |                    |                   |--Row.Created event--->|                    |               |
+
+   |                    |                   |<--Read OrderSeq-------|                    |               |
+
+   |                    |                   |--Increment (ETag)---->|                    |               |
+
+   |                    |                   |<--Patch GraphReq------|                    |               |
+
+   |                    |                   |                       |--Send email------->|               |
+
+   |                    |                   |                       |                    |--Inbox------->|
+
+   |                    |<--Auto-refresh----|                       |                    |               |
+
+   |<--CtrlNum shown----|                   |                       |                    |               |
+
+
+6.2 Status Transition: Updates Needed â†’ Designer Email
+
+Actor: Reviewer
+
+
+1. Reviewer opens the tracker and selects an existing item â†’ edit-item screen.
+
+
+2. Reviewer changes Status from 'In Progress' to 'Updates Needed' and clicks Save.
+
+
+3. GraphicTrackerCanvasApp updates the GraphicRequest row in DataverseGraphicStore.
+
+
+4. StatusChangeFlow fires on the Status field change, builds the 'Updates Needed for Graphics' email (including Graphic Control Number and Submitted By) and dispatches via NotificationService.
+
+
+5. The Graphic Designer receives the email; if 'Email status updates to Author' is ON, the Author/SME also receives a status update.
+
+
+Sequence
+
+Reviewer            CanvasApp          Dataverse           StatusChangeFlow    NotificationSvc     Designer/Author
+
+   |--Edit Item------->|                   |                       |                    |               |
+
+   |--Status=Updates-->|                   |                       |                    |               |
+
+   |--Save------------>|                   |                       |                    |               |
+
+   |                   |--Update Row------>|                       |                    |               |
+
+   |                   |                   |--Status changed------>|                    |               |
+
+   |                   |                   |                       |--Render template-->|               |
+
+   |                   |                   |                       |                    |--Email------->|
+
+
+6.3 Completion Notification to Submitter
+
+Actor: Graphic Designer
+
+
+1. Designer opens the item, sets Status='Completed', Save.
+
+
+2. DataverseGraphicStore persists the change.
+
+
+3. StatusChangeFlow detects Completed transition, fetches all completed-row metadata, and renders the 'Graphics Completed for Proposal' email.
+
+
+4. NotificationService emails the Submitter; Author/SME receives a copy if the per-item toggle is ON.
+
+
+Sequence
+
+Designer            CanvasApp          Dataverse           StatusChangeFlow    NotificationSvc     Submitter
+
+   |--Status=Complete->|                   |                       |                    |               |
+
+   |--Save------------>|--Update Row------>|                       |                    |               |
+
+   |                   |                   |--Status changed------>|                    |               |
+
+   |                   |                   |                       |--Render Completed->|               |
+
+   |                   |                   |                       |                    |--Email------->|
+
+
+7. Technology Stack
+Frontend
+Power Apps canvas app embedded as a Teams tab â€” BT (Q3) confirmed Power Platform; canvas app gives pixel-level control of the PDD-specified Accenture-themed UI and the Hello-username/landing/three-option layout.
+Backend
+Power Automate cloud flows (AutonumberFlow, StatusChangeFlow) â€” BT (Q4) said the logic is simple (generate numbers, send emails); Power Automate eliminates custom service code.
+Database
+Microsoft Dataverse for GraphicTracker / GraphicRequest / OrderSequence (ACID, ETag concurrency, RLS); SharePoint Online for finished-graphic file storage and templates per the PDD.
+Infrastructure
+Microsoft 365 tenant (Accenture) â€” no separate hosting needed; flows run on shared Power Platform capacity, well within 300-user / ~58k-events/month limits.
+Identity
+Microsoft Entra ID (Azure AD) SSO with Teams + Power Apps; Teams membership drives the Team/Channel dropdown filter and tab access.
+
+
+8. Integrations
+System
+Direction
+Purpose
+Protocol
+Payload
+Microsoft Teams
+bidirectional
+Host the Power App as a channel tab; resolve user's Team/Channel memberships for dropdowns.
+platform connector
+Teams tab manifest; Graph calls returning the user's Team and Channel lists.
+Microsoft Dataverse
+bidirectional
+Persist trackers, requests, and the OrderSequence counter; raise row-create/row-update events to flows.
+platform connector
+CRUD on GraphicTracker / GraphicRequest / OrderSequence rows; change-data events.
+SharePoint Online
+outbound
+Provide the link in the canvas app to deal-specific folders and the naming-convention guide; store completed graphic files.
+platform connector
+Document library URLs; optional file metadata reads.
+Exchange Online (Outlook)
+outbound
+Send the three notification emails (New Graphics, Updates Needed, Completed).
+platform connector
+HTML email body with the PDD-specified tables and subjects.
+Microsoft Entra ID
+inbound
+Authenticate the user and supply identity (display name, UPN) used for 'Submitted By' and Hello banner.
+platform connector
+OAuth/OIDC tokens, /me profile.
+
+
+9. Notifications
+
+
+9.1 GraphicRequest created (Status='New') â€” fired by AutonumberFlow after the control number is assigned.
+Channel
+email
+Recipients
+Graphic Designer
+Subject
+New Graphics for Proposal - [Opportunity Name]
+Opt-out
+Per-item toggle 'Email status updates to Author' on edit-item / new-item screen controls Author copies; Designer notification is mandatory for the autonumbering completion signal per BT Q7.
+
+
+Body template
+
+Dear Graphic Designer,
+
+ 
+
+A new Graphic request has been submitted.
+
+ 
+
+| ID | Title | Status | Graphics Type | Instructions | Section | Author/SME/Contact | Submitted By | Graphic Designer |
+
+|----|-------|--------|----------------|---------------|---------|---------------------|---------------|-------------------|
+
+| 1  | Overview | New | Medium | This is demo. | 1 | Kuldeep | Kuldeep Garud | Ramanujam, Deepa |
+
+| 2  | Facts    | New | Basic  | This is demo. | 3 | Kuldeep | Kuldeep Garud | Ramanujam, Deepa |
+
+ 
+
+If you have any questions, please feel free to reach out to the Submitter.
+
+
+9.2 GraphicRequest.Status changed to 'Updates Needed' â€” fired by StatusChangeFlow.
+Channel
+email
+Recipients
+Graphic Designer
+Subject
+Updates Needed for Graphics - [Opportunity Name]
+Opt-out
+Edit-item screen â†’ 'Email status updates to Author' toggle.
+
+
+Body template
+
+Dear Graphic Designer,
+
+ 
+
+Updates needed request has been submitted for the below Graphic request
+
+ 
+
+| ID | Title | Status | Graphics Type | Instructions | Section | Graphic Control Number | Submitted By | Graphic Designer |
+
+|----|-------|--------|----------------|---------------|---------|--------------------------|---------------|-------------------|
+
+| 1  | Overview | Updates Needed | Medium | This is demo. | 1 | 12345678.25.0001 | Kuldeep Garud | Ramanujam, Deepa |
+
+| 2  | Facts    | Updates Needed | Basic  | This is demo. | 3 | 12345678.25.0002 | Kuldeep Garud | Ramanujam, Deepa |
+
+ 
+
+If you have any questions, please feel free to reach out to the Submitter.
+
+
+9.3 GraphicRequest.Status changed to 'Completed' â€” fired by StatusChangeFlow.
+Channel
+email
+Recipients
+Submitter, Author/SME (if toggle ON)
+Subject
+Graphics Completed for Proposal - [Opportunity Name]
+Opt-out
+Edit-item screen â†’ 'Email status updates to Author' toggle suppresses the Author/SME copy; Submitter receives the email regardless.
+
+
+Body template
+
+Dear [Submitted By],
+
+ 
+
+We are pleased to inform you that the graphics for your proposal have been completed. Below are the details of the completed graphics:
+
+ 
+
+| ID | Title | Graphic Control Number | Status | Graphics Type | Instructions | Source File Control Number | Section | Author/SME/Contact | Submitted By | Graphic Designer | Created Date | Modified Date | Modified by |
+
+|----|-------|--------------------------|--------|----------------|---------------|------------------------------|---------|---------------------|---------------|-------------------|---------------|----------------|---------------|
+
+| 1  | Overview | 12345678.25.0001 | Completed | Medium | This is demo. | 87654321.24.0023 | 1 | Kuldeep | Kuldeep Garud | Ramanujam, Deepa | default | default | Kuldeep |
+
+| 2  | Facts    | 12345678.25.0002 | Completed | Basic  | This is demo. | - | 3 | Kuldeep | Kuldeep Garud | Ramanujam, Deepa | default | default | Kuldeep |
+
+ 
+
+If you have any questions or need further assistance, please feel free to reach out to the graphic design team.
+
+If you require any modifications to the completed graphics, you can submit an Updates Needed request. Please provide the necessary details and instructions for the modifications.
+
+ 
+
+Thank you for your submission and collaboration.
+
+ 
+
+Note: This is an automatically generated email, please do not reply.
+
+
+10. Non-Functional Requirements
+Scalability
+BT Q4: â‰¤300 concurrent users, ~58,050 requests/month (~2,640/business day, ~330/business hour, ~5.5/minute peak). With FY25 growth of 10â€“20% the upper bound is ~70,000/month â€” still well within standard Power Platform per-flow throughput (5,000 runs/5min) and Dataverse API limits. OrderSequence is the only contended row; scoping by (OppId, Year) means contention is per-deal-per-year, typically â‰¤9000 lifetime per BT assumption, so write-rate per key is negligible.
+Security
+Entra ID SSO for all users. RBAC: tab visibility requires Teams channel membership; Team/Channel dropdowns filtered to memberships (BT Q5). Dataverse row-level security on GraphicTracker by TeamId; GraphicRequest inherits via TrackerId. GraphicControlNumber is field-level read-only after first write (BT Q2) â€” enforced at the canvas-app form, the Power Automate write rule, and a Dataverse plugin/business rule to block any direct API edit. SharePoint link surfaced in the app but actual file access governed by SharePoint permissions per deal (PDD).
+Performance
+Target: autonumber assignment + UI confirmation â‰¤2s p95; email dispatch â‰¤30s p95. Synchronous Dataverse upsert + ETag retry on OrderSequence keeps end-to-end under 1s in steady state. PDD AHT of 2 minutes is dominated by the human design step, not autonumbering.
+Reliability
+Target availability 99.5% (aligned with Microsoft 365 SLA). Failure mode BT named explicitly (Q5): Power Automate platform outage. Mitigations: (a) AutonumberFlow runs with retry policy (exponential, 4 retries) and a dead-letter queue; (b) if the flow does not stamp a number within 60s, the canvas app shows an inline banner 'Control number pending â€” will appear automatically' so the row is still saved and the number backfills when the platform recovers; (c) unique constraint on GraphicControlNumber guards against double-stamp during retry.
+Observability
+BT Q6 said audit/logging is not required. Design therefore relies on the built-in Dataverse audit log (enabled on GraphicRequest only â€” Status, GraphicControlNumber fields) and Power Automate run history for the two flows. No custom dashboard built; we flag this as a residual risk below.
+
+
+11. PDD Visual References
+
+
+Figure 1 â€” Sample Graphic Control Number illustrating the naming convention OppID.YY.Order (e.g., 000007.26.0001) referenced in PDD section 6.4.1.
+
+Source: image-001.png
+
+Used in design: Drives the GraphicRequest.GraphicControlNumber field format, the OrderSequence allocation key (<OppId>.<YY>), the read-only display on the new-item and edit-item screens, and the validation regex on Source File Control Number.
+
+
+
+
+12. Risks
+Risk
+Severity
+Related Gap
+Mitigation
+Autonumber collision under concurrent designers despite optimistic-concurrency retries â€” could break the 'consecutive in chronological order' rule.
+medium
+Q1
+Single OrderSequence row per (OppId, Year) with Dataverse ETag-based optimistic locking, 5x retry with jitter, plus Unique constraint on GraphicControlNumber as a backstop; any duplicate raises a flow alert.
+Modified/revised graphics: BT (Q2) said the number is read-only and 'auto populates everywhere'. No versioning means lineage between a parent and a revised file is not tracked â€” could complicate harvesting/reuse.
+low
+Q2
+Use the optional 'Source File Control Number' field on edit-item to capture the parent control number when a graphic is modified from a reusable asset; surface it in the Completed email (already shown in PDD template).
+Power Automate platform outage stops autonumber stamping (the one failure mode BT explicitly named in Q5).
+high
+Q5
+Row save is decoupled from autonumber stamping: the GraphicRequest is persisted with Status='New' and a pending placeholder; flow retries on platform recovery and back-fills the number; user sees a 'Control number pending' banner â€” no data loss.
+No audit trail or RBAC reporting (BT Q6 declined). For a 262-FTE, multi-market process, lack of audit logs may surface later as a compliance/harvesting gap.
+medium
+Q6
+Enable Dataverse field-level auditing on GraphicRequest.Status and GraphicRequest.GraphicControlNumber at zero build cost â€” provides a recoverable trail without a custom dashboard, and can be exposed later via a Power BI report if requirements change.
+Per-deal cap assumption (â‰¤9000 graphics) gives only 1000 headroom against the 4-digit Order field â€” a single mega-deal could exhaust the sequence.
+low
+Q1
+Add a soft alert on OrderSequence.LastOrder â‰¥ 9000 to notify the BT lead; field width can be widened to 5 digits with a backwards-compatible migration if breached.
+Notification scope ambiguity â€” BT Q7 confirmed only the Completion email template, while the PDD also defines New Graphics and Updates Needed templates. Risk of building beyond/below BT's stated scope.
+low
+Q7
+All three PDD templates implemented in StatusChangeFlow/AutonumberFlow as designed; per-item 'Email status updates to Author' toggle gives the user the on/off control BT described. Confirm with BT in TDD review before build.
+
+
+

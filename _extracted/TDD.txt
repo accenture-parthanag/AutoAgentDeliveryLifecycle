@@ -1,0 +1,1877 @@
+﻿
+
+TECHNICAL DESIGN DOCUMENT
+
+Graphic Autonumber
+
+Generated 2026-05-22 Â· A-ADLC Tech Lead Agent
+Project ID
+6a0ea879bbfc6eb7333fdd6a
+Source SDD components
+8
+Modules
+9
+Tasks
+21
+Sequence diagrams
+3
+Open questions
+3
+
+
+
+
+1. Summary
+
+This TDD decomposes the approved Graphic Autonumber SDD into atomic, implementable engineering tasks on Microsoft Power Platform (Power Apps canvas + Power Automate + Dataverse + SharePoint + Outlook + Teams). Implementation proceeds in four phases: (1) tenant/environment + Dataverse schema + identity, (2) Power Automate flows (Autonumber + Status Change) and Outlook templates, (3) Power Apps canvas screens (Landing, Create Tracker, Open Tracker, View Tracker, New Item, Edit Item) wired to Dataverse and the flows, and (4) Teams tab packaging, RBAC hardening, observability and UAT. Each task traces to a named SDD component and (for UI work) an SDD screen id, and uses the autonumber format <OppID>.<YY>.<NNNN> defined by BT in Q1.
+
+
+Build sequence
+
+
+Phase 1 â€” Foundation: Power Platform environment, Dataverse solution & tables (GraphicTracker, GraphicRequest, OrderSequence), security roles, Entra ID/Teams identity wiring.
+
+
+Phase 2 â€” Workflow Backbone: AutonumberFlow (atomic OrderSequence increment + control-number stamp), StatusChangeFlow (Updates Needed / Completed routing), Outlook email templates and read-only enforcement on GraphicControlNumber.
+
+
+Phase 3 â€” Canvas App: Build and wire Landing, Create Tracker, Open Existing Tracker, View Tracker (auto-refresh, group/sort), New Item (triggers AutonumberFlow), and Edit Item (read-only control number, status transitions, Email-status-updates-to-Author toggle).
+
+
+Phase 4 â€” Packaging, RBAC, Observability & UAT: Teams tab manifest, Team/Channel membership filter, Dataverse field-level audit on Status/GraphicControlNumber, flow run-history monitoring, smoke + UAT across Growth Markets/EMEA/Americas.
+
+
+2. Modules
+
+
+2.1 DataverseGraphicStore
+Purpose
+Dataverse solution that owns the GraphicTracker, GraphicRequest and OrderSequence tables, including keys, indexes, security roles and field-level audit configuration.
+SDD source component
+DataverseGraphicStore
+Owned entities
+GraphicTracker, GraphicRequest, OrderSequence
+
+
+Interfaces
+Name
+Type
+Signature
+Description
+gt_graphictracker
+table
+Table gt_graphictracker { gt_trackerid: uniqueidentifier PK, gt_opportunityid: string(6) UNIQUE, gt_dealname: string(200), gt_teamschannellink: string(500), gt_teamid: string(64), gt_channelid: string(64), createdby: lookup(systemuser), createdon: datetime }
+One row per deal-scoped tracker. OpportunityId is unique and immutable post-save.
+gt_graphicrequest
+table
+Table gt_graphicrequest { gt_requestid: uniqueidentifier PK, gt_trackerid: lookup(gt_graphictracker), gt_graphiccontrolnumber: string(20) UNIQUE, gt_title: string(200), gt_status: optionset{New=1,InProgress=2,UpdatesNeeded=3,Completed=4}, gt_graphicstype: optionset{Basic=1,Medium=2,Complex=3}, gt_instructions: memo, gt_section: string(20), gt_authorsmecontact: string(100), gt_submittedby: lookup(systemuser), gt_graphicdesigner: lookup(systemuser), gt_sourcefilecontrolnumber: string(20), gt_emailstatusupdatestoauthor: boolean default true, createdon, modifiedon, modifiedby }
+Source of truth for graphic line items; GraphicControlNumber is read-only after first write.
+gt_ordersequence
+table
+Table gt_ordersequence { gt_sequencekey: string(10) PK ALT-KEY (<OppId>.<YY>), gt_opportunityid: string(6), gt_year: string(2), gt_lastorder: int(0..9999) default 0, modifiedon: datetime }
+Atomic counter row used by AutonumberFlow with ETag concurrency.
+
+
+2.2 AutonumberFlow
+Purpose
+Power Automate cloud flow that allocates the next 4-digit Order per (OppId, Year) and stamps GraphicControlNumber on the new GraphicRequest row; fires New-Graphics email.
+SDD source component
+AutonumberFlow
+Owned entities
+OrderSequence, GraphicRequest
+
+
+Interfaces
+Name
+Type
+Signature
+Description
+flow_AutonumberOnGraphicRequestCreate
+flow
+Trigger: Dataverse 'When a row is added' on gt_graphicrequest. Inputs: new row (gt_requestid, gt_trackerid). Outputs: updates gt_graphiccontrolnumber on the same row + sends 'New Graphics' email.
+Atomic get-or-create + increment of gt_ordersequence using If-Match ETag with up to 5 jittered retries on HTTP 412.
+
+
+2.3 StatusChangeFlow
+Purpose
+Power Automate flow that routes 'Updates Needed' emails to the Designer and 'Completed' emails to the Submitter/Author when gt_status transitions.
+SDD source component
+StatusChangeFlow
+Owned entities
+GraphicRequest
+
+
+Interfaces
+Name
+Type
+Signature
+Description
+flow_StatusChangeOnGraphicRequestUpdate
+flow
+Trigger: Dataverse 'When a row is modified' on gt_graphicrequest, filter on gt_status change. Inputs: prior + new status. Outputs: Outlook 'Send an email (V2)' calls per template.
+Branches on new status; respects gt_emailstatusupdatestoauthor toggle for Author copies.
+
+
+2.4 NotificationService
+Purpose
+Outlook (Exchange Online) connector wrapper that owns the three HTML email templates from the PDD.
+SDD source component
+NotificationService
+Owned entities
+
+
+
+Interfaces
+Name
+Type
+Signature
+Description
+template_NewGraphics
+function
+renderNewGraphicsEmail(request: gt_graphicrequest) -> { to, subject, htmlBody }
+Subject 'New Graphics for Proposal - [Opportunity Name]', PDD-specified table body.
+template_UpdatesNeeded
+function
+renderUpdatesNeededEmail(request) -> { to, subject, htmlBody }
+Subject 'Updates Needed for Graphics - [Opportunity Name]'.
+template_Completed
+function
+renderCompletedEmail(request) -> { to, cc, subject, htmlBody }
+Subject 'Graphics Completed for Proposal - [Opportunity Name]'; CC Author/SME only when toggle is ON.
+
+
+2.5 GraphicTrackerCanvasApp
+Purpose
+Power Apps canvas application providing all six screens, embedded as a Teams channel tab.
+SDD source component
+GraphicTrackerCanvasApp
+Owned entities
+
+
+
+Interfaces
+Name
+Type
+Signature
+Description
+scr_Landing
+screen
+Landing screen â€” Hello banner + 3 navigation buttons + SharePoint link
+Entry point in the Teams tab.
+scr_CreateTracker
+screen
+Create Tracker form â€” OppId, DealName, Team, Channel, derived link
+Writes one gt_graphictracker row.
+scr_OpenTracker
+screen
+Open Existing Tracker â€” search/sort/select
+Reads gt_graphictracker filtered by user's Team memberships.
+scr_ViewTracker
+screen
+View Tracker â€” gallery of gt_graphicrequest rows + group/sort + auto-refresh
+List view for the active tracker.
+scr_NewItem
+screen
+New Graphic Request form
+Submits a new gt_graphicrequest row; AutonumberFlow stamps the control number.
+scr_EditItem
+screen
+Edit Graphic Request form
+Updates fields and status; control number is read-only.
+
+
+2.6 TeamsMembershipResolver
+Purpose
+Microsoft Graph / Teams connector wrapper that returns the Teams/Channels the current user is a member of, used to filter dropdowns and tracker visibility.
+SDD source component
+TeamsMembershipResolver
+Owned entities
+
+
+
+Interfaces
+Name
+Type
+Signature
+Description
+GetMyTeams
+api
+GetMyTeams() -> List<{ teamId, displayName }>
+Wraps GET /me/joinedTeams.
+GetMyChannels
+api
+GetMyChannels(teamId) -> List<{ channelId, displayName, webUrl }>
+Wraps GET /teams/{id}/channels filtered to channels the user can read.
+
+
+2.7 IdentityProvider
+Purpose
+Entra ID SSO wrapper used to supply the signed-in user object across screens and flows.
+SDD source component
+IdentityProvider
+Owned entities
+
+
+
+Interfaces
+Name
+Type
+Signature
+Description
+CurrentUser
+function
+User() -> { FullName, Email, ObjectId }
+Power Apps built-in User() / Office365Users.MyProfileV2().
+
+
+2.8 SharePointAssetStore
+Purpose
+SharePoint Online document libraries holding completed graphic files, templates and production materials, referenced from the canvas app for the naming-convention guide.
+SDD source component
+SharePointAssetStore
+Owned entities
+
+
+
+Interfaces
+Name
+Type
+Signature
+Description
+DealAssetLibrary
+api
+GetDealLibraryUrl(opportunityId) -> string
+Returns the SharePoint folder URL surfaced via the Landing screen link.
+
+
+2.9 TeamsTabPackaging
+Purpose
+Teams app manifest and Power Apps Teams tab embedding so the canvas app appears as a channel tab.
+SDD source component
+GraphicTrackerCanvasApp
+Owned entities
+
+
+
+Interfaces
+Name
+Type
+Signature
+Description
+manifest.json
+function
+Teams app manifest v1.16 with staticTabs + configurableTabs entry for the Power Apps tab
+Used by deal channels to add the Graphic Tracker tab.
+
+
+3. Task Breakdown
+
+21 atomic tasks. Each task names its SDD component, the screen it builds (where applicable), acceptance criteria, and pseudocode in the target tech stack.
+
+
+Task #1 â€” Provision Power Platform environments and managed solution
+Module
+DataverseGraphicStore
+SDD component
+DataverseGraphicStore
+Related screen
+
+Complexity
+low
+Estimated hours
+8
+Dependencies
+
+
+
+Description
+
+Create DEV, UAT and PROD Power Platform environments in the Accenture tenant, enable Dataverse on each, and create a managed solution 'GraphicAutonumber' with publisher prefix 'gt'. Configure environment routing for the AutonumberFlow and StatusChangeFlow connectors.
+
+
+Acceptance criteria
+
+
+Three environments (DEV/UAT/PROD) exist with Dataverse provisioned.
+
+
+Managed solution 'GraphicAutonumber' with publisher prefix 'gt' is created in DEV and exportable to UAT/PROD.
+
+
+Service principal / connection references for Dataverse, Outlook, Teams, and SharePoint connectors are configured at the environment level.
+
+
+Pseudocode / implementation sketch
+
+# Power Platform CLI
+
+pac auth create --name accDev --tenant <accenture-tenant-id>
+
+pac admin create --name 'GraphicAutonumber-DEV' --region 'unitedstates' --type Production
+
+pac admin create --name 'GraphicAutonumber-UAT' --region 'unitedstates' --type Production
+
+pac admin create --name 'GraphicAutonumber-PROD' --region 'unitedstates' --type Production
+
+pac solution init --publisher-name 'AcnGraphics' --publisher-prefix 'gt'
+
+pac solution add-reference --path .
+
+pac solution pack --zipfile GraphicAutonumber.zip --packagetype Managed
+
+
+Task #2 â€” Create Dataverse table gt_graphictracker with keys and security
+Module
+DataverseGraphicStore
+SDD component
+DataverseGraphicStore
+Related screen
+
+Complexity
+low
+Estimated hours
+6
+Dependencies
+1
+
+
+Description
+
+Model the GraphicTracker entity per SDD.dataModel. Add the unique alternate key on gt_opportunityid and an index on (gt_teamid, gt_channelid). Enable owner-based security with a row-level filter that restricts read/write to users who own or share the row.
+
+
+Acceptance criteria
+
+
+Table gt_graphictracker exists with all SDD fields and correct data types.
+
+
+Alternate key Unique(gt_opportunityid) is enforced â€” attempting a second insert with the same OppId returns 412/409.
+
+
+Index on (gt_teamid, gt_channelid) exists.
+
+
+Security role 'GraphicTrackerUser' grants Create/Read/Write/Append on the table at the User level.
+
+
+Pseudocode / implementation sketch
+
+// Customizations.xml (Dataverse table definition â€” abbreviated)
+
+<Entity Name="gt_graphictracker" OwnershipType="UserOwned">
+
+  <attribute name="gt_trackerid" type="uniqueidentifier" PK="true"/>
+
+  <attribute name="gt_opportunityid" type="nvarchar" length="6" required="SystemRequired"/>
+
+  <attribute name="gt_dealname" type="nvarchar" length="200" required="SystemRequired"/>
+
+  <attribute name="gt_teamschannellink" type="nvarchar" length="500"/>
+
+  <attribute name="gt_teamid" type="nvarchar" length="64"/>
+
+  <attribute name="gt_channelid" type="nvarchar" length="64"/>
+
+  <AlternateKey name="AK_OpportunityId" attributes="gt_opportunityid"/>
+
+  <Index name="IX_TeamChannel" attributes="gt_teamid,gt_channelid"/>
+
+</Entity>
+
+
+Task #3 â€” Create Dataverse table gt_graphicrequest with audit and read-only control-number rule
+Module
+DataverseGraphicStore
+SDD component
+DataverseGraphicStore
+Related screen
+
+Complexity
+medium
+Estimated hours
+16
+Dependencies
+2
+
+
+Description
+
+Model GraphicRequest per SDD with the gt_status and gt_graphicstype option sets. Mark gt_graphiccontrolnumber as 'unique alternate key' and add a Dataverse business rule + plugin step to reject any UPDATE that changes gt_graphiccontrolnumber once it is non-null (BT Q2). Enable field-level audit on gt_status and gt_graphiccontrolnumber.
+
+
+Acceptance criteria
+
+
+All fields from SDD.GraphicRequest are present with correct types and option-set values (New=1, InProgress=2, UpdatesNeeded=3, Completed=4).
+
+
+gt_graphiccontrolnumber is unique; second insert with the same value returns an alternate-key violation.
+
+
+Direct API update to gt_graphiccontrolnumber on a row where it is already populated returns an InvalidOperationException raised by the plugin.
+
+
+Field audit history on gt_status and gt_graphiccontrolnumber is visible in 'Auditing â†’ Audit History'.
+
+
+Pseudocode / implementation sketch
+
+// C# Dataverse plugin (PreOperation Update on gt_graphicrequest)
+
+public class LockControlNumberPlugin : IPlugin {
+
+  public void Execute(IServiceProvider sp) {
+
+    var ctx = (IPluginExecutionContext)sp.GetService(typeof(IPluginExecutionContext));
+
+    if (!ctx.InputParameters.Contains("Target") || !(ctx.InputParameters["Target"] is Entity target)) return;
+
+    if (!target.Attributes.Contains("gt_graphiccontrolnumber")) return;
+
+    var pre = (Entity)ctx.PreEntityImages["PreImage"];
+
+    var oldVal = pre.GetAttributeValue<string>("gt_graphiccontrolnumber");
+
+    var newVal = target.GetAttributeValue<string>("gt_graphiccontrolnumber");
+
+    if (!string.IsNullOrEmpty(oldVal) && oldVal != newVal)
+
+      throw new InvalidPluginExecutionException("GraphicControlNumber is read-only after generation (BT Q2).");
+
+  }
+
+}
+
+
+Referenced PDD visuals
+
+
+
+Figure 1 â€” from PDD (image-001.png)
+
+
+Task #4 â€” Create Dataverse table gt_ordersequence with composite alternate key
+Module
+DataverseGraphicStore
+SDD component
+DataverseGraphicStore
+Related screen
+
+Complexity
+low
+Estimated hours
+4
+Dependencies
+1
+
+
+Description
+
+Model the OrderSequence counter table. Add an alternate key on gt_sequencekey so AutonumberFlow can upsert by key. Seed no rows â€” the flow creates them on first use per (OppId, Year).
+
+
+Acceptance criteria
+
+
+Table gt_ordersequence exists with fields gt_sequencekey (string 10), gt_opportunityid (string 6), gt_year (string 2), gt_lastorder (int default 0), modifiedon.
+
+
+Unique alternate key AK_SequenceKey on gt_sequencekey is enforced.
+
+
+gt_lastorder has min=0, max=9999.
+
+
+Pseudocode / implementation sketch
+
+<Entity Name="gt_ordersequence" OwnershipType="OrganizationOwned">
+
+  <attribute name="gt_sequencekey" type="nvarchar" length="10" required="SystemRequired"/>
+
+  <attribute name="gt_opportunityid" type="nvarchar" length="6" required="SystemRequired"/>
+
+  <attribute name="gt_year" type="nvarchar" length="2" required="SystemRequired"/>
+
+  <attribute name="gt_lastorder" type="int" minValue="0" maxValue="9999" defaultValue="0"/>
+
+  <AlternateKey name="AK_SequenceKey" attributes="gt_sequencekey"/>
+
+</Entity>
+
+
+Task #5 â€” Define security roles, sharing, and Team-membership row filter
+Module
+DataverseGraphicStore
+SDD component
+DataverseGraphicStore
+Related screen
+
+Complexity
+medium
+Estimated hours
+8
+Dependencies
+2, 3, 4
+
+
+Description
+
+Create the 'GraphicTrackerUser' Dataverse security role granting User-level CRUD on gt_graphictracker / gt_graphicrequest and Read on gt_ordersequence (only flows can write). Apply hierarchical sharing rule: when a tracker is created the row is auto-shared with members of the linked AAD group (TeamId). Document the role mapping for the 262 production FTEs and 300-user concurrency cap from BT Q4.
+
+
+Acceptance criteria
+
+
+Role 'GraphicTrackerUser' is exportable with the managed solution.
+
+
+A user who is NOT in the AAD group of a tracker's TeamId cannot read that tracker or its requests via SDK or Power App.
+
+
+Role only allows Read on gt_ordersequence; insert/update is denied to all users (only the flow connection has those privileges).
+
+
+Pseudocode / implementation sketch
+
+// AutoShareOnCreate plugin (PostOperation Create on gt_graphictracker)
+
+var teamId = target.GetAttributeValue<string>("gt_teamid");
+
+var aadGroup = QueryAadGroup(teamId);
+
+foreach (var member in aadGroup.Members) {
+
+  service.Execute(new GrantAccessRequest {
+
+    Target = target.ToEntityReference(),
+
+    PrincipalAccess = new PrincipalAccess {
+
+      Principal = new EntityReference("systemuser", member.SystemUserId),
+
+      AccessMask = AccessRights.ReadAccess | AccessRights.WriteAccess | AccessRights.AppendAccess
+
+    }
+
+  });
+
+}
+
+
+Task #6 â€” Build AutonumberFlow â€” atomic OrderSequence increment and control-number stamp
+Module
+AutonumberFlow
+SDD component
+AutonumberFlow
+Related screen
+
+Complexity
+high
+Estimated hours
+20
+Dependencies
+3, 4, 5
+
+
+Description
+
+Create the Power Automate cloud flow that triggers on gt_graphicrequest row create. It resolves the parent gt_graphictracker to read gt_opportunityid, computes sequenceKey = OppId + '.' + last-two-digits(year(utcNow)), upserts the gt_ordersequence row, increments gt_lastorder atomically using If-Match ETag with up to 5 retries (exponential jitter), formats <OppId>.<YY>.<NNNN>, and patches gt_graphiccontrolnumber on the originating row. On final failure logs to flow run history and surfaces a 'Control number pending' placeholder on the row (BT Q5 platform-outage mitigation).
+
+
+Acceptance criteria
+
+
+Trigger fires within 5s of a row create on gt_graphicrequest in DEV environment.
+
+
+Two concurrent inserts for the same OppId+Year produce two distinct, consecutive control numbers (e.g., .0001 and .0002) â€” verified by parallel-load script.
+
+
+Forced 412 from Dataverse on the OrderSequence update is retried up to 5x with jittered backoff; on success the final value is correct.
+
+
+Generated value matches regex ^\d{6}\.\d{2}\.\d{4}$.
+
+
+After successful stamp, the New-Graphics email is dispatched (handed off to task 8).
+
+
+Pseudocode / implementation sketch
+
+// Power Automate â€” AutonumberFlow
+
+Trigger: 'When a row is added' (Dataverse) â€” Table: gt_graphicrequest
+
+ 
+
+Init variables:
+
+  varOppId   = triggerOutputs()?['body/_gt_trackerid_value@OData.Community.Display.V1.FormattedValue']
+
+  // Lookup tracker to get OppId
+
+  Tracker = Get a row by ID (gt_graphictracker, triggerOutputs()?['body/_gt_trackerid_value'])
+
+  varOppId = Tracker['gt_opportunityid']
+
+  varYY    = substring(string(utcNow('yy')), 0, 2)
+
+  varKey   = concat(varOppId, '.', varYY)
+
+  varRetry = 0
+
+  varStamped = false
+
+ 
+
+Do Until (varStamped or varRetry >= 5):
+
+  Get sequence row (alternate key gt_sequencekey eq varKey)
+
+    if Not Found:
+
+      Add new row gt_ordersequence { gt_sequencekey: varKey, gt_opportunityid: varOppId, gt_year: varYY, gt_lastorder: 0 }
+
+  Capture etag = body['@odata.etag']
+
+  varNext = add(int(seqRow['gt_lastorder']), 1)
+
+  Update row gt_ordersequence id=seqRow.id with body { gt_lastorder: varNext } HEADERS { 'If-Match': etag }
+
+  If success (200/204):
+
+    varControlNumber = concat(varOppId, '.', varYY, '.', formatNumber(varNext, '0000'))
+
+    Update row gt_graphicrequest id=trigger.gt_requestid with { gt_graphiccontrolnumber: varControlNumber }
+
+    Set varStamped = true
+
+  Else if 412 Precondition Failed:
+
+    Increment varRetry
+
+    Delay rand(200ms .. 1000ms * pow(2, varRetry))
+
+  Else: Terminate (Failed)
+
+ 
+
+If not varStamped:
+
+  Update row gt_graphicrequest with { gt_graphiccontrolnumber: 'PENDING' } and log to run history.
+
+
+Referenced PDD visuals
+
+
+
+Figure 1 â€” from PDD (image-001.png)
+
+
+Task #7 â€” Build StatusChangeFlow â€” branch on gt_status transitions
+Module
+StatusChangeFlow
+SDD component
+StatusChangeFlow
+Related screen
+
+Complexity
+medium
+Estimated hours
+12
+Dependencies
+3, 8
+
+
+Description
+
+Power Automate flow triggered on gt_graphicrequest modify, filtered to runs where gt_status changes. Branch: 'Updates Needed' â†’ call NotificationService.UpdatesNeeded template to Graphic Designer; 'Completed' â†’ Completed template to Submitter, CC Author/SME when gt_emailstatusupdatestoauthor = true; other transitions â†’ no email.
+
+
+Acceptance criteria
+
+
+Trigger filter 'gt_status' is set so the flow only runs when status actually changes.
+
+
+Switch on gt_status value sends the correct PDD template per state.
+
+
+When gt_emailstatusupdatestoauthor = false, no Author/SME copy is sent on Completed.
+
+
+Flow run history shows 'Succeeded' for all happy-path UAT scenarios.
+
+
+Pseudocode / implementation sketch
+
+Trigger: 'When a row is modified' (Dataverse) â€” Table: gt_graphicrequest
+
+  Trigger condition: @not(equals(triggerOutputs()?['body/gt_status@OData.Community.Display.V1.FormattedValue'], triggerOutputs()?['body/_gt_previousstatus_value@OData.Community.Display.V1.FormattedValue']))
+
+  // Use ChangeTrackingHeader 'If-None-Match' or 'ms-dynamics-changedfields' to scope to gt_status
+
+ 
+
+Switch on triggerBody()?['gt_status']:
+
+  case 3 /* Updates Needed */:
+
+     Compose updatesBody = NotificationService.renderUpdatesNeededEmail(triggerBody())
+
+     Send an email (V2) To: designer.email Subject: updatesBody.subject Body: updatesBody.html IsHtml: true
+
+  case 4 /* Completed */:
+
+     Compose completedBody = NotificationService.renderCompletedEmail(triggerBody())
+
+     Send an email (V2) To: submitter.email
+
+        Cc: if(equals(triggerBody()?['gt_emailstatusupdatestoauthor'], true), authorEmail, null)
+
+        Subject: completedBody.subject Body: completedBody.html IsHtml: true
+
+  default: terminate(Succeeded)
+
+
+Task #8 â€” Implement Outlook email templates (New Graphics, Updates Needed, Completed)
+Module
+NotificationService
+SDD component
+NotificationService
+Related screen
+
+Complexity
+medium
+Estimated hours
+12
+Dependencies
+3
+
+
+Description
+
+Author the three PDD email templates as Compose actions feeding 'Send an email (V2)'. Subjects: 'New Graphics for Proposal - [Opportunity Name]', 'Updates Needed for Graphics - [Opportunity Name]', 'Graphics Completed for Proposal - [Opportunity Name]'. Bodies render the PDD-specified HTML tables with the columns listed in SDD.notifications.
+
+
+Acceptance criteria
+
+
+All three templates render the exact PDD column set; emails display correctly in Outlook desktop and OWA.
+
+
+Subject substitutes [Opportunity Name] from the parent gt_graphictracker.gt_dealname.
+
+
+Completed template includes Source File Control Number when present; renders '-' when null.
+
+
+Pseudocode / implementation sketch
+
+// Power Automate expression â€” Completed email body (HTML)
+
+concat(
+
+  '<p>Dear ', triggerBody()?['gt_submittedby_formattedvalue'], ',</p>',
+
+  '<p>We are pleased to inform you that the graphics for your proposal have been completed.</p>',
+
+  '<table border="1" cellpadding="6" cellspacing="0">',
+
+    '<tr><th>ID</th><th>Title</th><th>Graphic Control Number</th><th>Status</th><th>Type</th><th>Instructions</th><th>Source File Ctrl #</th><th>Section</th><th>Author/SME</th><th>Submitted By</th><th>Designer</th><th>Created</th><th>Modified</th><th>Modified By</th></tr>',
+
+    '<tr>',
+
+      '<td>', string(triggerBody()?['gt_rownumber']), '</td>',
+
+      '<td>', triggerBody()?['gt_title'], '</td>',
+
+      '<td>', triggerBody()?['gt_graphiccontrolnumber'], '</td>',
+
+      '<td>Completed</td>',
+
+      '<td>', triggerBody()?['gt_graphicstype@OData.Community.Display.V1.FormattedValue'], '</td>',
+
+      '<td>', coalesce(triggerBody()?['gt_instructions'], ''), '</td>',
+
+      '<td>', coalesce(triggerBody()?['gt_sourcefilecontrolnumber'], '-'), '</td>',
+
+      '<td>', coalesce(triggerBody()?['gt_section'], ''), '</td>',
+
+      '<td>', coalesce(triggerBody()?['gt_authorsmecontact'], ''), '</td>',
+
+      '<td>', triggerBody()?['gt_submittedby_formattedvalue'], '</td>',
+
+      '<td>', triggerBody()?['gt_graphicdesigner_formattedvalue'], '</td>',
+
+      '<td>', triggerBody()?['createdon'], '</td>',
+
+      '<td>', triggerBody()?['modifiedon'], '</td>',
+
+      '<td>', triggerBody()?['modifiedby_formattedvalue'], '</td>',
+
+    '</tr>',
+
+  '</table>',
+
+  '<p>Note: This is an automatically generated email, please do not reply.</p>'
+
+)
+
+
+Task #9 â€” Bootstrap Power Apps canvas app shell and Dataverse connections
+Module
+GraphicTrackerCanvasApp
+SDD component
+GraphicTrackerCanvasApp
+Related screen
+
+Complexity
+low
+Estimated hours
+6
+Dependencies
+3, 5
+
+
+Description
+
+Create the GraphicTracker canvas app in DEV. Add data sources: Dataverse (gt_graphictracker, gt_graphicrequest), Office365Users, Microsoft Teams. Apply Accenture theme variables (primary purple #A100FF accent, neutral greys). Define App.OnStart to initialise gblUser and gblTheme.
+
+
+Acceptance criteria
+
+
+Canvas app opens in Studio with all three data sources connected without errors.
+
+
+App.OnStart loads gblUser within 1s on a warm session.
+
+
+App passes the Power Apps checker with zero high-severity issues.
+
+
+Pseudocode / implementation sketch
+
+// App.OnStart
+
+Set(gblUser, Office365Users.MyProfileV2());
+
+Set(gblTheme, {
+
+    Primary: RGBA(161,0,255,1),
+
+    Ink: RGBA(10,22,40,1),
+
+    Bg: RGBA(250,249,246,1),
+
+    Surface: RGBA(255,255,255,1),
+
+    Line: RGBA(229,229,229,1)
+
+});
+
+Set(gblNow, Now());
+
+
+Task #10 â€” Build scr_Landing screen with personalised greeting and 3 navigation buttons
+Module
+GraphicTrackerCanvasApp
+SDD component
+GraphicTrackerCanvasApp
+Related screen
+landing
+Complexity
+low
+Estimated hours
+6
+Dependencies
+9
+
+
+Description
+
+Implement the Landing screen per SDD wireframe. Header shows 'Hello <FullName>' from gblUser. Three buttons: 'Create a New Graphic Tracker' â†’ scr_CreateTracker; 'Add/Update requests in existing Graphics Tracker' â†’ scr_ViewTracker for the current channel; 'Open Existing Graphic Tracker' â†’ scr_OpenTracker. Add SharePoint folder/naming-convention hyperlink.
+
+
+Acceptance criteria
+
+
+lblHello displays 'Hello <gblUser.displayName>' on screen load.
+
+
+Each of the three buttons navigates to the correct screen with no console errors.
+
+
+lnkSharePoint opens the configured deal library URL in a new tab via Launch().
+
+
+Pseudocode / implementation sketch
+
+// lblHello.Text
+
+"Hello " & gblUser.displayName
+
+ 
+
+// btnCreateTracker.OnSelect
+
+Navigate(scr_CreateTracker, ScreenTransition.None)
+
+ 
+
+// btnViewExisting.OnSelect
+
+Set(gblActiveTracker, LookUp(gt_graphictrackers, gt_teamid = gblTeamId && gt_channelid = gblChannelId));
+
+If(!IsBlank(gblActiveTracker),
+
+   Navigate(scr_ViewTracker, ScreenTransition.None),
+
+   Notify("No tracker exists for this channel yet.", NotificationType.Warning)
+
+);
+
+ 
+
+// btnOpenExisting.OnSelect
+
+Navigate(scr_OpenTracker, ScreenTransition.None);
+
+ 
+
+// lnkSharePoint.OnSelect
+
+Launch(varSharePointGuideUrl)
+
+
+Referenced PDD visuals
+
+
+
+Figure 1 â€” from PDD (image-001.png)
+
+
+Task #11 â€” Build scr_CreateTracker form with cascading Team/Channel dropdowns
+Module
+GraphicTrackerCanvasApp
+SDD component
+GraphicTrackerCanvasApp
+Related screen
+create-tracker
+Complexity
+medium
+Estimated hours
+12
+Dependencies
+10, 14
+
+
+Description
+
+Implement the Create Tracker screen per SDD wireframe. Controls: txtOppId (6-digit numeric, required), txtDealName (required), ddTeam (uses TeamsMembershipResolver.GetMyTeams), ddChannel (cascades from selected team), txtChannelLink (read-only, derived from channel.webUrl), btnCreate, btnCancel. On Create, patch gt_graphictracker.
+
+
+Acceptance criteria
+
+
+txtOppId rejects non-numeric input and values not exactly 6 digits.
+
+
+Creating a second tracker with the same OppId surfaces an inline error 'Opportunity ID already exists' (caught from the Dataverse alt-key violation).
+
+
+ddTeam only lists Teams returned by GetMyTeams; ddChannel only lists channels for the selected team that the user can read.
+
+
+txtChannelLink auto-populates from ddChannel.Selected.webUrl and is read-only.
+
+
+On successful Patch, app navigates to scr_ViewTracker for the new tracker.
+
+
+Pseudocode / implementation sketch
+
+// ddTeam.Items
+
+MicrosoftTeams.GetAllTeams().value
+
+ 
+
+// ddChannel.Items
+
+MicrosoftTeams.GetChannelsForGroup(ddTeam.Selected.id).value
+
+ 
+
+// txtChannelLink.Default
+
+ddChannel.Selected.webUrl
+
+ 
+
+// btnCreate.OnSelect
+
+If(
+
+  !IsMatch(txtOppId.Text, "^\d{6}$"),
+
+     Notify("Opportunity ID must be 6 digits", NotificationType.Error),
+
+  IsBlank(txtDealName.Text) || IsBlank(ddTeam.Selected) || IsBlank(ddChannel.Selected),
+
+     Notify("All fields are required", NotificationType.Error),
+
+  /* else */
+
+     Set(gblActiveTracker,
+
+        Patch(gt_graphictrackers, Defaults(gt_graphictrackers), {
+
+           gt_opportunityid: txtOppId.Text,
+
+           gt_dealname: txtDealName.Text,
+
+           gt_teamid: ddTeam.Selected.id,
+
+           gt_channelid: ddChannel.Selected.id,
+
+           gt_teamschannellink: txtChannelLink.Text
+
+        })
+
+     );
+
+     If(IsBlankOrError(gblActiveTracker),
+
+        Notify("Opportunity ID already exists or save failed", NotificationType.Error),
+
+        Navigate(scr_ViewTracker, ScreenTransition.None)
+
+     )
+
+)
+
+
+Task #12 â€” Build scr_OpenTracker with search, sort and member-filtered list
+Module
+GraphicTrackerCanvasApp
+SDD component
+GraphicTrackerCanvasApp
+Related screen
+open-tracker
+Complexity
+medium
+Estimated hours
+10
+Dependencies
+10, 14
+
+
+Description
+
+Implement Open Existing Tracker per SDD wireframe. Gallery bound to gt_graphictrackers filtered by gt_teamid IN GetMyTeamIds(). Search box filters on OppId or DealName; sort dropdown drives Created Date / Deal Name / Opportunity ID order. Row click sets gblActiveTracker and navigates to scr_ViewTracker.
+
+
+Acceptance criteria
+
+
+Gallery never shows a tracker whose gt_teamid is not in the current user's Teams membership list.
+
+
+Search updates the gallery within 500ms of keystroke pause.
+
+
+Sort dropdown changes the gallery order without losing scroll position.
+
+
+Row click sets gblActiveTracker and navigates to scr_ViewTracker.
+
+
+Pseudocode / implementation sketch
+
+// galTrackers.Items
+
+SortByColumns(
+
+  Filter(gt_graphictrackers,
+
+         gt_teamid in gblMyTeamIds &&
+
+         (IsBlank(txtSearch.Text) ||
+
+          StartsWith(gt_opportunityid, txtSearch.Text) ||
+
+          gt_dealname in txtSearch.Text)),
+
+  Switch(ddSort.Selected.Value,
+
+         "Created Date", "createdon",
+
+         "Deal Name",    "gt_dealname",
+
+         "Opportunity ID", "gt_opportunityid"),
+
+  If(ddSort.Selected.Value="Created Date", Descending, Ascending)
+
+)
+
+ 
+
+// galTrackers.OnSelect (per row)
+
+Set(gblActiveTracker, ThisItem);
+
+Navigate(scr_ViewTracker, ScreenTransition.None)
+
+
+Task #13 â€” Build scr_ViewTracker with auto-refresh, group-by and sort
+Module
+GraphicTrackerCanvasApp
+SDD component
+GraphicTrackerCanvasApp
+Related screen
+view-tracker
+Complexity
+medium
+Estimated hours
+12
+Dependencies
+10, 11
+
+
+Description
+
+Implement the View Tracker screen per SDD wireframe. Header shows '<DealName> â€” Opp <OppId>'. Gallery bound to gt_graphicrequests filtered by gt_trackerid = gblActiveTracker. Columns: Graphic Control Number (read-only), Title, Status (badge), Type, Designer. Group-by: Status | Designer | Type. Sort-by: Created | Modified | Title | Status. Add 30-second timer that re-runs the query.
+
+
+Acceptance criteria
+
+
+Gallery shows only requests for gblActiveTracker.
+
+
+Timer fires every 30,000ms and refreshes the data source; the refresh does not lose the user's current group/sort selection.
+
+
+Status badge styles: New = neutral grey, In Progress = gold, Updates Needed = accent rust, Completed = positive green.
+
+
++ New Item button navigates to scr_NewItem with gblActiveTracker in context.
+
+
+Pseudocode / implementation sketch
+
+// galRequests.Items
+
+SortByColumns(
+
+  GroupBy(
+
+    Filter(gt_graphicrequests, gt_trackerid.gt_trackerid = gblActiveTracker.gt_trackerid),
+
+    ddGroup.Selected.Value
+
+  ),
+
+  Switch(ddSort.Selected.Value,
+
+    "Created Date", "createdon",
+
+    "Modified Date", "modifiedon",
+
+    "Title", "gt_title",
+
+    "Status", "gt_status"
+
+  ),
+
+  Descending
+
+)
+
+ 
+
+// tmrAutoRefresh.Duration = 30000, Repeat = true, AutoStart = true
+
+// tmrAutoRefresh.OnTimerEnd
+
+Refresh(gt_graphicrequests);
+
+ 
+
+// lblStatusBadge.Fill (per status)
+
+Switch(ThisItem.gt_status,
+
+  'gt_status'.New,           RGBA(180,180,180,1),
+
+  'gt_status'.'In Progress', RGBA(176,141,58,1),
+
+  'gt_status'.'Updates Needed', RGBA(184,52,26,1),
+
+  'gt_status'.Completed,     RGBA(27,94,32,1)
+
+)
+
+ 
+
+// btnNewItem.OnSelect
+
+Navigate(scr_NewItem, ScreenTransition.None)
+
+
+Task #14 â€” Build TeamsMembershipResolver wrapper for canvas app
+Module
+TeamsMembershipResolver
+SDD component
+TeamsMembershipResolver
+Related screen
+
+Complexity
+medium
+Estimated hours
+8
+Dependencies
+9
+
+
+Description
+
+Centralise calls to the Microsoft Teams connector behind two named formulas on the App: gblMyTeamIds and a helper colMyChannels. Use Office365Groups / MicrosoftTeams.GetAllTeams() filtered to the current user's joinedTeams. Cache results in collections on App.OnStart so screens render without re-calling Graph.
+
+
+Acceptance criteria
+
+
+App.OnStart populates colMyTeams within 2s on a warm session of 50 Teams.
+
+
+gblMyTeamIds is an array of team IDs and is referenced by scr_CreateTracker, scr_OpenTracker and scr_ViewTracker.
+
+
+A user not a member of a Team cannot see that Team in the dropdown or its trackers in scr_OpenTracker.
+
+
+Pseudocode / implementation sketch
+
+// App.OnStart (append)
+
+ClearCollect(colMyTeams, MicrosoftTeams.GetAllTeams().value);
+
+Set(gblMyTeamIds, Concat(colMyTeams, id, ","));
+
+// Helper named formula: NF_MyTeamIds = LookUp ... etc.
+
+ 
+
+// Filter usage:
+
+Filter(gt_graphictrackers, gt_teamid in colMyTeams.id)
+
+
+Task #15 â€” Build scr_NewItem form, trigger AutonumberFlow, and poll for stamp
+Module
+GraphicTrackerCanvasApp
+SDD component
+GraphicTrackerCanvasApp
+Related screen
+new-item
+Complexity
+high
+Estimated hours
+16
+Dependencies
+13, 6
+
+
+Description
+
+Implement the New Graphic Request screen per SDD wireframe. Controls: lblControlNumber (read-only â€” shows 'Auto-generated on save'), txtTitle (required), ddType (Basic/Medium/Complex, required), txtaInstructions, txtSection, txtAuthorSme, lblSubmittedBy (gblUser.displayName), peopleDesigner (people-picker restricted to channel members), tglEmailAuthor (default ON), btnSave, btnCancel. On Save, Patch gt_graphicrequest with Status=New; rely on AutonumberFlow (server-side row-create trigger) to stamp the number; poll the row up to 30s for gt_graphiccontrolnumber, otherwise show 'Control number pending' banner (BT Q5 mitigation).
+
+
+Acceptance criteria
+
+
+btnSave is disabled when txtTitle or ddType is empty.
+
+
+lblSubmittedBy is read-only and bound to gblUser.displayName.
+
+
+On Save, a gt_graphicrequest row is created with gt_status = New and gt_emailstatusupdatestoauthor = tglEmailAuthor.Value.
+
+
+Within 30s the gallery row shows the stamped control number matching ^\d{6}\.\d{2}\.\d{4}$.
+
+
+If the polling timer expires with control number still null, the row banner 'Control number pending' is visible.
+
+
+Pseudocode / implementation sketch
+
+// btnSave.OnSelect
+
+If(IsBlank(txtTitle.Text) || IsBlank(ddType.Selected),
+
+   Notify("Title and Graphics Type are required", NotificationType.Error),
+
+   Set(gblNewRequest,
+
+     Patch(gt_graphicrequests, Defaults(gt_graphicrequests), {
+
+        gt_trackerid: gblActiveTracker,
+
+        gt_title: txtTitle.Text,
+
+        gt_graphicstype: ddType.Selected,
+
+        gt_instructions: txtaInstructions.Text,
+
+        gt_section: txtSection.Text,
+
+        gt_authorsmecontact: txtAuthorSme.Text,
+
+        gt_submittedby: { '@odata.bind': "systemusers(" & gblUser.id & ")" },
+
+        gt_graphicdesigner: peopleDesigner.Selected,
+
+        gt_emailstatusupdatestoauthor: tglEmailAuthor.Value,
+
+        gt_status: 'gt_status'.New
+
+     })
+
+   );
+
+   Set(gblPollCount, 0);
+
+   tmrPollControl.Start = true;
+
+   Navigate(scr_ViewTracker)
+
+)
+
+ 
+
+// tmrPollControl.OnTimerEnd (Duration=3000, Repeat=true, max 10 cycles)
+
+Set(gblNewRequest, LookUp(gt_graphicrequests, gt_requestid = gblNewRequest.gt_requestid));
+
+Set(gblPollCount, gblPollCount + 1);
+
+If(!IsBlank(gblNewRequest.gt_graphiccontrolnumber) || gblPollCount >= 10,
+
+   Set(tmrPollControl.Start, false))
+
+
+Referenced PDD visuals
+
+
+
+Figure 1 â€” from PDD (image-001.png)
+
+
+Task #16 â€” Build scr_EditItem form with locked control number and Source-File regex validation
+Module
+GraphicTrackerCanvasApp
+SDD component
+GraphicTrackerCanvasApp
+Related screen
+edit-item
+Complexity
+medium
+Estimated hours
+12
+Dependencies
+13, 7
+
+
+Description
+
+Implement the Edit Graphic Request screen per SDD wireframe. Controls: lblControlNumber (read-only, click-to-copy via Copy() per BT Q2), ddStatus (New/In Progress/Updates Needed/Completed), txtSourceFileCtrl (validated with regex ^\d{6}\.\d{2}\.\d{4}$ when provided), tglEmailAuthor, plus the editable Title/Type/Instructions/Section/Author/Designer fields, btnSave/Cancel. On Save, Patch the row; StatusChangeFlow auto-fires from Dataverse.
+
+
+Acceptance criteria
+
+
+lblControlNumber DisplayMode = View; clicking it copies the value to the clipboard and shows a toast (BT Q2).
+
+
+txtSourceFileCtrl shows an inline error if not blank and not matching the autonumber regex.
+
+
+ddStatus restricted to 4 values; changing to Updates Needed or Completed and saving causes StatusChangeFlow to dispatch the correct email within 30s (verified by Run History).
+
+
+Submitted By is shown but locked.
+
+
+Pseudocode / implementation sketch
+
+// lblControlNumber.OnSelect
+
+Set(_dummy, Copy(gblSelectedRequest.gt_graphiccontrolnumber));
+
+Notify("Control number copied", NotificationType.Success);
+
+ 
+
+// txtSourceFileCtrl.OnChange
+
+If(!IsBlank(txtSourceFileCtrl.Text) && !IsMatch(txtSourceFileCtrl.Text, "^\d{6}\.\d{2}\.\d{4}$"),
+
+   Set(varSrcError, true), Set(varSrcError, false))
+
+ 
+
+// btnSave.OnSelect
+
+If(varSrcError,
+
+   Notify("Source File Control Number format must be NNNNNN.YY.NNNN", NotificationType.Error),
+
+   Patch(gt_graphicrequests, gblSelectedRequest, {
+
+      gt_title: txtTitle.Text,
+
+      gt_status: ddStatus.Selected,
+
+      gt_graphicstype: ddType.Selected,
+
+      gt_instructions: txtaInstructions.Text,
+
+      gt_section: txtSection.Text,
+
+      gt_sourcefilecontrolnumber: txtSourceFileCtrl.Text,
+
+      gt_authorsmecontact: txtAuthorSme.Text,
+
+      gt_graphicdesigner: peopleDesigner.Selected,
+
+      gt_emailstatusupdatestoauthor: tglEmailAuthor.Value
+
+   });
+
+   Back()
+
+)
+
+
+Task #17 â€” Embed Power App as Teams tab â€” manifest and channel installation guide
+Module
+TeamsTabPackaging
+SDD component
+GraphicTrackerCanvasApp
+Related screen
+landing
+Complexity
+low
+Estimated hours
+6
+Dependencies
+10, 11, 12, 13, 15, 16
+
+
+Description
+
+Generate the Teams app package via Power Apps Studio â†’ 'Add to Teams', publish to the Teams catalog as an Accenture line-of-business app, and document the deal-team install steps (Add a tab â†’ Graphic Tracker â†’ done). Configure both static and configurable tab entries so a deal team can pin the app per channel.
+
+
+Acceptance criteria
+
+
+Teams app manifest passes the Teams App validator with zero errors.
+
+
+Tab can be added to a deal channel and renders the Landing screen within 3s.
+
+
+The tab honours Teams light/dark theme switching.
+
+
+Pseudocode / implementation sketch
+
+// manifest.json (relevant excerpt)
+
+{
+
+  "manifestVersion": "1.16",
+
+  "id": "a-adlc-graphic-tracker",
+
+  "name": { "short": "Graphic Tracker", "full": "Pursuit Services Graphic Tracker Autonumber" },
+
+  "configurableTabs": [{
+
+     "configurationUrl": "https://apps.powerapps.com/teams/configure?appId={POWER_APP_ID}",
+
+     "scopes": [ "team" ]
+
+  }],
+
+  "validDomains": [ "apps.powerapps.com", "powerappsportals.com" ]
+
+}
+
+
+Task #18 â€” Configure SharePoint asset library link and naming-convention page
+Module
+SharePointAssetStore
+SDD component
+SharePointAssetStore
+Related screen
+landing
+Complexity
+low
+Estimated hours
+4
+Dependencies
+1, 10
+
+
+Description
+
+Create the SharePoint Online site/library structure for completed graphics (per PDD section 6.4.1) and store its base URL in a Dataverse environment variable gt_SharePointGuideUrl referenced by scr_Landing.lnkSharePoint.
+
+
+Acceptance criteria
+
+
+Environment variable gt_SharePointGuideUrl exists and resolves to a working SharePoint URL.
+
+
+Clicking the Landing link opens that URL in a new tab.
+
+
+Per-deal subfolders use the naming convention <OppID>_<DealName> documented on the guide page.
+
+
+Pseudocode / implementation sketch
+
+// Dataverse environment variable definition
+
+<EnvironmentVariableDefinition schemaName="gt_SharePointGuideUrl" type="String">
+
+  <DefaultValue>https://ts.accenture.com/sites/GraphicTrackerRD/...</DefaultValue>
+
+</EnvironmentVariableDefinition>
+
+ 
+
+// Canvas: lnkSharePoint.OnSelect
+
+Launch(EnvironmentVariables.gt_SharePointGuideUrl)
+
+
+Task #19 â€” Add platform-outage banner and 'Control number pending' UX
+Module
+GraphicTrackerCanvasApp
+SDD component
+GraphicTrackerCanvasApp
+Related screen
+view-tracker
+Complexity
+low
+Estimated hours
+4
+Dependencies
+13, 15, 6
+
+
+Description
+
+Implement the BT Q5 fail-safe UX: if a row exists with gt_graphiccontrolnumber blank or 'PENDING' for more than 60s, surface a yellow banner 'Control number pending â€” will appear automatically' on scr_ViewTracker and scr_EditItem. Banner clears as soon as the value is stamped.
+
+
+Acceptance criteria
+
+
+Forcing AutonumberFlow off in DEV results in the banner appearing on the row within 60s of save.
+
+
+Re-enabling the flow and waiting for stamp clears the banner automatically on the next 30s refresh.
+
+
+Pseudocode / implementation sketch
+
+// galRequests row template â€” pendingBanner.Visible
+
+IsBlank(ThisItem.gt_graphiccontrolnumber)
+
+  || ThisItem.gt_graphiccontrolnumber = "PENDING"
+
+ 
+
+// pendingBanner.Text
+
+"Control number pending â€” will appear automatically"
+
+
+Task #20 â€” Enable Dataverse field-level audit and OrderSequence high-water alert
+Module
+DataverseGraphicStore
+SDD component
+DataverseGraphicStore
+Related screen
+
+Complexity
+low
+Estimated hours
+4
+Dependencies
+3, 4
+
+
+Description
+
+Turn on table-level audit on gt_graphicrequest with field-level audit on gt_status and gt_graphiccontrolnumber only (BT Q6 declined custom logging; this is the zero-build trail per SDD residual-risk mitigation). Add a scheduled Power Automate alert that emails the BT lead when any gt_ordersequence.gt_lastorder >= 9000 (PDD assumption headroom).
+
+
+Acceptance criteria
+
+
+Audit History on a sample gt_graphicrequest row shows entries for status changes and the initial control-number stamp.
+
+
+Scheduled flow 'flow_OrderSequenceHighWater' runs daily and sends an email when any sequence row is >= 9000.
+
+
+Pseudocode / implementation sketch
+
+// flow_OrderSequenceHighWater
+
+Trigger: Recurrence (Daily 06:00 UTC)
+
+List rows from gt_ordersequence: $filter=gt_lastorder ge 9000
+
+If length(body('List_rows').value) > 0:
+
+   Send an email (V2)
+
+      To: btlead@accenture.com
+
+      Subject: '[Graphic Tracker] OrderSequence high-water reached'
+
+      Body: Compose table of OppId / Year / LastOrder
+
+
+Task #21 â€” Run end-to-end smoke and UAT pack
+Module
+GraphicTrackerCanvasApp
+SDD component
+GraphicTrackerCanvasApp
+Related screen
+
+Complexity
+medium
+Estimated hours
+16
+Dependencies
+17, 19, 20, 8, 7, 6
+
+
+Description
+
+Execute a scripted smoke test covering happy path (create tracker â†’ new item â†’ autonumber â†’ status transitions â†’ completion email) plus the BT-relevant edge cases (concurrent submissions, duplicate OppId, missing OppId, platform-outage simulation). Coordinate UAT with 8-10 representative users from Growth Markets, EMEA and Americas.
+
+
+Acceptance criteria
+
+
+Smoke pack: 100% of scenarios pass in UAT environment.
+
+
+Concurrent-load script (10 parallel POSTs per OppId+Year): all rows receive distinct, consecutive control numbers.
+
+
+All three email templates render correctly in Outlook desktop and OWA for at least one UAT user per region.
+
+
+Sign-off recorded by BT Lead (Deepa Ramanujam or Kamna Verma) with PDD-version 2.0 reference.
+
+
+Pseudocode / implementation sketch
+
+// UAT script outline
+
+1. Create tracker { OppId=900001, DealName='UAT Deal', Team='UAT Team', Channel='UAT Ch' }
+
+2. Add Item { Title='Overview', Type=Medium, Designer=user1, EmailAuthor=ON } â†’ expect control number 900001.<YY>.0001
+
+3. Add second item in parallel from another user â†’ expect 900001.<YY>.0002
+
+4. Edit item to Status='Updates Needed' â†’ expect Designer email
+
+5. Edit item to Status='Completed' â†’ expect Submitter email + Author CC
+
+6. Attempt API patch of gt_graphiccontrolnumber â†’ expect plugin rejection
+
+7. Disable AutonumberFlow â†’ add item â†’ expect 'pending' banner within 60s
+
+8. Re-enable flow â†’ wait 30s â†’ expect banner clears and number appears
+
+
+4. Sequence Diagrams
+
+
+4.1 New Graphic Request â€” Submit â†’ Autonumber â†’ Designer Email
+
+Submitter         CanvasApp           Dataverse           AutonumberFlow      Outlook            Designer
+
+   |                    |                   |                       |                    |               |
+
+   |--Open Teams tab--->|                   |                       |                    |               |
+
+   |--+ New Item------->|                   |                       |                    |               |
+
+   |--Fill & Save------>|                   |                       |                    |               |
+
+   |                    |--Patch gt_graphicrequest (Status=New)-->|                       |                    |               |
+
+   |                    |                   |--Row.Created event--->|                    |               |
+
+   |                    |                   |<--Read+Upsert gt_ordersequence (ETag)--|                    |               |
+
+   |                    |                   |<--Patch gt_graphiccontrolnumber---------|                    |               |
+
+   |                    |                   |                       |--Send email V2---->|               |
+
+   |                    |                   |                       |                    |--Inbox------->|
+
+   |                    |<--Refresh (30s)---|                       |                    |               |
+
+   |<--CtrlNumber shown-|                   |                       |                    |               |
+
+
+4.2 Status â†’ Updates Needed / Completed â€” Edit â†’ StatusChangeFlow â†’ Email
+
+Reviewer/Designer    CanvasApp           Dataverse           StatusChangeFlow    Outlook            Designer/Submitter
+
+   |--Edit Item------->|                   |                       |                    |               |
+
+   |--ddStatus change->|                   |                       |                    |               |
+
+   |--btnSave--------->|--Patch gt_graphicrequest-->|                       |                    |               |
+
+   |                   |                   |--Row.Modified (status)->|                    |               |
+
+   |                   |                   |                       |--Switch on status->|               |
+
+   |                   |                   |                       |--Render template-->|               |
+
+   |                   |                   |                       |                    |--Email------->|
+
+
+4.3 Autonumber Concurrency â€” Two parallel inserts on same (OppId, Year)
+
+User A             User B            Dataverse                AutonumberFlow A     AutonumberFlow B
+
+   |                  |                   |                            |                    |
+
+   |--Insert req A--->|                   |                            |                    |
+
+                       |--Insert req B--->|                            |                    |
+
+                                            |--Trigger A-------------->|                    |
+
+                                            |--Trigger B-------------------------------------->|
+
+                                            |<--Read seq (etag=v1)-----|                    |
+
+                                            |<--Read seq (etag=v1)-----------------------------|
+
+                                            |--Update seq â†’ v2 (200)-->|                    |
+
+                                            |--Update seq â†’ v2 (412 If-Match fail)<------------|
+
+                                            |                          |                    |--retry w/ jitter
+
+                                            |<--Read seq (etag=v2)<------------------------------|
+
+                                            |--Update seq â†’ v3 (200)<-----------------------------|
+
+   |<--Stamp .0001----|                   |                            |                    |
+
+                       |<--Stamp .0002----|                            |                    |
+
+
+5. Data Bootstrap / Migration
+Task
+Approach
+Owner
+No data migration required â€” this is a new build per BT Q3. Confirm Day-0 with zero rows in gt_graphictracker / gt_graphicrequest / gt_ordersequence.
+Smoke-check empty tables post-deploy; document that legacy Excel-tracked control numbers are NOT imported.
+DataverseGraphicStore
+Seed environment variable gt_SharePointGuideUrl per environment (DEV/UAT/PROD).
+Set via solution import or via 'Power Platform admin â†’ Environment variables'.
+SharePointAssetStore
+Bootstrap Teams app catalog entry in the Accenture tenant.
+Sideload the manifest in a pilot tenant, then publish via Teams Admin Centre after UAT sign-off.
+TeamsTabPackaging
+
+
+6. Test Strategy
+Unit
+Use Power Apps Test Studio to author Test Suites per screen (scr_Landing, scr_CreateTracker, scr_OpenTracker, scr_ViewTracker, scr_NewItem, scr_EditItem) asserting control properties, OnSelect outcomes, and validation messages. For the Dataverse 'LockControlNumber' plugin use the PluginRegistration tool's Plugin Profiler with serialized contexts covering Create, Update-no-change, Update-with-change. For Power Automate, isolate the OrderSequence increment logic by running the flow against a DEV environment with a mocked Dataverse table populated with edge-case rows (LastOrder=0, 9998, 9999).
+Integration
+End-to-end happy path: Teams tab â†’ Power App â†’ Patch gt_graphicrequest â†’ AutonumberFlow â†’ email â†’ email in Outlook. Run with two distinct user identities in UAT (one Submitter, one Designer) to confirm RBAC. Use Power Automate Run History plus Dataverse audit log to verify each hop. Concurrency: a small PowerShell driver that submits 10 parallel POSTs to the Dataverse Web API for the same (OppId, Year) and asserts 10 distinct, consecutive control numbers.
+UAT
+Recruit 8-10 representative users across the three operating windows (India / EMEA / North America) consistent with the 262-FTE production population. Provide a one-page UAT script that mirrors the happy-path + 3 edge cases. Sign-off requires: (a) all UAT scripts pass, (b) at least one Designer per region receives all three email types and confirms rendering, (c) BT Lead signs the UAT closure form against PDD v2.0.
+
+
+Edge cases
+
+
+Concurrent submissions for the same OppId+Year â€” autonumber must remain unique and consecutive (PDD pre-process rule + BT Q1).
+
+
+Duplicate Opportunity ID at tracker creation â€” Dataverse alt-key violation surfaced as friendly error (SDD GraphicTracker.Unique(OpportunityId)).
+
+
+User not a member of the Team/Channel â€” Team/Channel dropdowns are empty and trackers are invisible (BT Q5).
+
+
+Attempt to PATCH gt_graphiccontrolnumber after generation â€” plugin rejects with InvalidPluginExecutionException (BT Q2).
+
+
+Power Automate platform outage during create â€” row persists, banner 'Control number pending' shows, backfill on recovery (BT Q5, SDD risk 3).
+
+
+gt_ordersequence.gt_lastorder reaches 9000 â€” high-water alert email sent to BT lead (PDD assumption â‰¤9000 per deal).
+
+
+Status changes from In Progress â†’ New (downward) â€” StatusChangeFlow correctly takes the no-email default branch.
+
+
+Toggle 'Email status updates to Author' = OFF on Completed transition â€” Submitter still receives email, Author/SME does not (SDD notifications.userOptOut).
+
+
+Source File Control Number entered in wrong format â€” inline validation blocks Save.
+
+
+7. PDD Visual References
+
+
+Figure 1 â€” Sample Graphic Control Number 000007.26.0001 illustrating the OppID.YY.Order naming convention from PDD section 6.4.1 (also reaffirmed in BT Q1).
+
+Source: image-001.png
+
+Used in TDD: Drives task 3 (gt_graphicrequest schema + uniqueness on gt_graphiccontrolnumber), task 6 (AutonumberFlow format string), task 10 (Landing screen showing the read-only field), task 15 (New Item display) and task 16 (Edit Item validation regex on Source File Control Number).
+
+
+
+
+8. Open Questions
+Question
+Blocks Tasks
+Which Accenture-owned SharePoint site collection should host the per-deal completed-graphic libraries referenced by gt_SharePointGuideUrl, and who owns governance of that site collection? PDD provides two example URLs but no canonical production location.
+18
+Confirm the precise Accenture brand colour values (the PDD says 'Accenture colour. Shared sample colour with the developer' but the swatch is not in the document). Needed for canvas theme tokens in task 9 and ongoing UI tasks 10â€“16.
+9, 10, 11, 12, 13, 15, 16
+For the Teams Member-Access dropdown on scr_NewItem.peopleDesigner â€” should the people picker be filtered to channel members only, Team members, or any internal Accenture user? SDD says 'restricted to channel members'; clarify whether 'channel members' equals private-channel membership or parent Team membership when the channel is Standard.
+15
+
+
+
