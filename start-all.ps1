@@ -125,22 +125,24 @@ $backendReady = $false
 while ($elapsed -lt $maxWait) {
     if (-not $frontendReady) {
         try {
-            $response = Invoke-WebRequest -Uri "http://localhost:3000" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
-            if ($response.StatusCode -eq 200) {
-                Write-Host "  ✓ Frontend is ready!" -ForegroundColor Green
-                $frontendReady = $true
-            }
-        } catch { }
+            $null = Invoke-WebRequest -Uri "http://localhost:3000" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
+            Write-Host "  ✓ Frontend is ready!" -ForegroundColor Green
+            $frontendReady = $true
+        } catch {
+            $null
+        }
     }
 
     if (-not $backendReady) {
         try {
             $response = Invoke-RestMethod -Uri "http://localhost:5000/api/health" -TimeoutSec 2 -ErrorAction SilentlyContinue
-            if ($response.status -eq "ok") {
+            if ($response -and $response.status -eq "ok") {
                 Write-Host "  ✓ Backend is ready!" -ForegroundColor Green
                 $backendReady = $true
             }
-        } catch { }
+        } catch {
+            $null
+        }
     }
 
     if ($frontendReady -and $backendReady) {

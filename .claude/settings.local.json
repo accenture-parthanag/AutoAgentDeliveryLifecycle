@@ -86,7 +86,8 @@
       "PowerShell(npm start)",
       "PowerShell(npm run *)",
       "Bash(node clean-db.js)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
