@@ -205,9 +205,7 @@ export default function ProjectDetail() {
       {/* PAGE HEADER */}
       <div className="border-b pb-md mb-lg">
         <h1>{project.name}</h1>
-        <p className="body-lg mt-md" style={{ color: 'var(--on-surface-variant)', maxWidth: '600px' }}>
-          {project.description}
-        </p>
+        <div className="body-lg mt-md" style={{ color: 'var(--on-surface-variant)', maxWidth: '600px' }} dangerouslySetInnerHTML={{ __html: project.description || '' }} />
       </div>
 
       {/* PROJECT INFO GRID */}
@@ -579,7 +577,7 @@ export default function ProjectDetail() {
                       <p className="label-bold" style={{ color: 'var(--primary-container)', marginBottom: 'var(--space-xs)' }}>
                         Question {gap.id}
                       </p>
-                      <p className="body-md">{gap.question}</p>
+                      <div className="body-md" dangerouslySetInnerHTML={{ __html: gap.question || '' }} />
                     </div>
                     {btResponse && (
                       <span style={{
@@ -631,9 +629,7 @@ export default function ProjectDetail() {
                       <p style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#10b981', marginBottom: '8px' }}>
                         BT Response
                       </p>
-                      <p className="body-md" style={{ margin: '0 0 12px 0', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
-                        {btResponse.text}
-                      </p>
+                      <div className="body-md" style={{ margin: '0 0 12px 0', lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: btResponse.text || '' }} />
                       <p style={{ fontSize: '11px', color: 'var(--on-surface-variant)', margin: 0 }}>
                         Submitted on {new Date(btResponse.submittedAt).toLocaleString()}
                       </p>
@@ -920,17 +916,13 @@ export default function ProjectDetail() {
             <h3 style={{ borderBottom: '1px solid var(--outline-variant)', paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
               Scope
             </h3>
-            <p className="body-md" style={{ color: 'var(--on-surface-variant)' }}>
-              {project.scope}
-            </p>
+            <div className="body-md" style={{ color: 'var(--on-surface-variant)' }} dangerouslySetInnerHTML={{ __html: project.scope || '' }} />
           </div>
           <div>
             <h3 style={{ borderBottom: '1px solid var(--outline-variant)', paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
               Success Criteria
             </h3>
-            <p className="body-md" style={{ color: 'var(--on-surface-variant)' }}>
-              {project.criteria}
-            </p>
+            <div className="body-md" style={{ color: 'var(--on-surface-variant)' }} dangerouslySetInnerHTML={{ __html: project.criteria || '' }} />
           </div>
         </div>
       </div>

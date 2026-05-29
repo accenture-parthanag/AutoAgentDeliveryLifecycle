@@ -26,7 +26,7 @@ export default function Dashboard() {
             pddStatus: pddApprovedPhase?.status === 'completed' ? 'approved' : 'pending',
             lastUpdated: new Date(p.updatedAt).toISOString().split('T')[0],
             btCollaborator: p.btLead,
-            pddVersions: p.pddVersions || 0,
+            pddVersions: Array.isArray(p.pddVersions) ? p.pddVersions.length : (p.pddVersions || 0),
             changeRequests: p.changeRequests || []
           };
         });
