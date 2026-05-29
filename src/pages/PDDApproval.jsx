@@ -11,6 +11,7 @@ export default function PDDApproval() {
   const [submitting, setSubmitting] = useState(false);
   const [approvalNotes, setApprovalNotes] = useState('');
   const [confirmCheckbox, setConfirmCheckbox] = useState(false);
+  const reviewStartedAt = React.useRef(new Date().toISOString());
 
   useEffect(() => {
     getProject(projectId)
@@ -33,7 +34,9 @@ export default function PDDApproval() {
         projectId,
         approvalNotes,
         approvedAt: new Date().toISOString(),
-        approvedBy: 'BT Team'
+        approvedBy: 'BT Team',
+        reviewStartedAt: reviewStartedAt.current,
+        reviewCompletedAt: new Date().toISOString()
       });
 
       alert('✓ PDD has been approved and is ready for Architecture phase!');

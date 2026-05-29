@@ -47,6 +47,8 @@ function createJob(projectId, stage, context, priority = 3) {
     result: null,
     claimedAt: null,
     completedAt: null,
+    durationMs: null,
+    tokenMetrics: null,
     createdAt: new Date(),
     updatedAt: new Date()
   };

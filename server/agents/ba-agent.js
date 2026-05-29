@@ -1,7 +1,7 @@
 require('dotenv').config();
 
+const Anthropic = require('@anthropic-ai/sdk');
 const { MongoClient, ObjectId } = require('mongodb');
-const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const PDFParse = require('pdf-parse');
@@ -33,8 +33,10 @@ async function connectDb() {
   console.log(`✓ BA Agent connected to MongoDB: ${MONGODB_DB}`);
 }
 
-// Call Claude CLI to analyze PDD and generate gaps
-function generateGapsWithClaude(projectData, fileContent) {
+// Call Claude API to analyze PDD and generate gaps
+async function generateGapsWithClaude(projectData, fileContent) {
+  const client = new Anthropic();
+
   const prompt = renderPrompt({
     projectName: projectData.projectName,
     description: projectData.description,
@@ -49,34 +51,25 @@ function generateGapsWithClaude(projectData, fileContent) {
     console.log(`${'='.repeat(60)}`);
     console.log(prompt.substring(0, 300) + '...');
     console.log(`${'='.repeat(60)}`);
-    console.log(`\n🔄 Calling Claude CLI...`);
-
-    // Call claude CLI with the prompt via stdin (for large prompts)
-    const command = `claude --output-format json`;
-    console.log(`\n💻 Executing Claude CLI command (via stdin)...`);
+    console.log(`\n🔄 Calling Claude API...`);
     console.log(`   Prompt size: ${(prompt.length / 1024 / 1024).toFixed(2)} MB`);
 
-    let output;
-    try {
-      output = execSync(command, {
-        input: prompt,
-        encoding: 'utf-8',
-        maxBuffer: 10 * 1024 * 1024,
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
-    } catch (execErr) {
-      console.error(`Claude CLI exit code: ${execErr.status}`);
-      console.error(`Claude CLI stderr: ${execErr.stderr?.toString() || 'N/A'}`);
-      console.error(`Claude CLI stdout: ${execErr.stdout?.toString() || 'N/A'}`);
-      throw execErr;
-    }
-    console.log(`✓ Claude CLI returned response`);
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 8096,
+      messages: [{ role: 'user', content: prompt }]
+    });
 
-    // Parse the JSON response
-    const payload = JSON.parse(output);
-    const responseText = payload.result || payload.response || '';
-
+    const responseText = response.content[0]?.text || '';
+    console.log(`✓ Claude API returned response`);
     console.log(`📊 Response text (first 200 chars): ${responseText.substring(0, 200)}`);
+
+    // Token usage and cost
+    const inputTokens = response.usage.input_tokens;
+    const outputTokens = response.usage.output_tokens;
+    const costUsd = (inputTokens * 0.80 / 1_000_000) + (outputTokens * 4.00 / 1_000_000);
+
+    console.log(`📊 Tokens used - Input: ${inputTokens}, Output: ${outputTokens}, Cost: $${costUsd.toFixed(6)}`);
 
     // Extract JSON from response
     const jsonMatch = responseText.match(/\[[\s\S]*\]/);
@@ -87,9 +80,17 @@ function generateGapsWithClaude(projectData, fileContent) {
 
     const gaps = JSON.parse(jsonMatch[0]);
     console.log(`✓ Successfully parsed ${gaps.length} gaps from response`);
-    return gaps;
+
+    return {
+      gaps,
+      tokenMetrics: {
+        inputTokens,
+        outputTokens,
+        costUsd
+      }
+    };
   } catch (err) {
-    console.error('❌ Error calling Claude CLI:', err.message);
+    console.error('❌ Error calling Claude API:', err.message);
     console.error(`   Full error: ${err.toString()}`);
     throw new Error('Failed to analyze PDD with Claude: ' + err.message);
   }
@@ -224,7 +225,7 @@ async function pollAndProcess() {
       }
 
       console.error(`STEP 3: Calling Claude API...`);
-      const gaps = generateGapsWithClaude(jobData.context, fileContent);
+      const { gaps, tokenMetrics } = await generateGapsWithClaude(jobData.context, fileContent);
       console.error(`✓ STEP 3 DONE: Got ${gaps.length} gaps`);
 
       console.error(`STEP 4: Updating project with gaps...`);
@@ -242,12 +243,15 @@ async function pollAndProcess() {
       console.error(`✓ STEP 4 DONE: Project updated`);
 
       console.error(`STEP 5: Marking job as completed...`);
+      const durationMs = Date.now() - new Date(jobData.claimedAt).getTime();
       const jobCompleteResult = await jobsCollection.findOneAndUpdate(
         { _id: jobData._id },
         {
           $set: {
             status: 'completed',
             completedAt: new Date(),
+            durationMs,
+            tokenMetrics,
             result: {
               gapsGenerated: gaps.length,
               gapIds: gaps.map(g => g.id)
@@ -255,7 +259,8 @@ async function pollAndProcess() {
           }
         }
       );
-      console.error(`✓ STEP 5 DONE: Job marked completed`);
+      console.error(`✓ STEP 5 DONE: Job marked completed (duration: ${(durationMs / 1000).toFixed(1)}s)`);
+      console.error(`   Token metrics: Input=${tokenMetrics.inputTokens}, Output=${tokenMetrics.outputTokens}, Cost=$${tokenMetrics.costUsd.toFixed(6)}`);
 
       console.error(`\n🎉 SUCCESS! Processed ${gaps.length} gaps`);
       console.error(`${'='.repeat(60)}`);
@@ -295,8 +300,10 @@ async function start() {
     console.log(`   Polling for pdd_review jobs every 3 seconds...`);
     console.log(`   Press Ctrl+C to stop\n`);
 
-    // Poll every 3 seconds
-    setInterval(pollAndProcess, 3000);
+    // Poll every 3 seconds (handle async)
+    setInterval(async () => {
+      await pollAndProcess();
+    }, 3000);
   } catch (error) {
     console.error('Failed to start BA Agent:', error);
     process.exit(1);

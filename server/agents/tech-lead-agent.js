@@ -1,7 +1,7 @@
 require('dotenv').config();
 
+const Anthropic = require('@anthropic-ai/sdk');
 const { MongoClient, ObjectId } = require('mongodb');
-const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const PDFParse = require('pdf-parse');
@@ -104,6 +104,8 @@ async function loadPddPayload(projectId, sddPddImages) {
 }
 
 async function generateTddWithClaude(project) {
+  const client = new Anthropic();
+
   if (!project.sddDocument) {
     throw new Error('Project has no sddDocument — Architect agent must run first');
   }
@@ -129,28 +131,22 @@ async function generateTddWithClaude(project) {
     console.log(prompt.substring(0, 300) + '...');
     console.log(`${'='.repeat(60)}`);
     console.log(`   Prompt size: ${(prompt.length / 1024).toFixed(1)} KB`);
-    console.log(`\n🔄 Calling Claude CLI...`);
+    console.log(`\n🔄 Calling Claude API...`);
 
-    const command = `claude --output-format json`;
-    let output;
-    try {
-      output = execSync(command, {
-        input: prompt,
-        encoding: 'utf-8',
-        maxBuffer: 10 * 1024 * 1024,
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
-    } catch (execErr) {
-      console.error(`Claude CLI exit code: ${execErr.status}`);
-      console.error(`Claude CLI stderr: ${execErr.stderr?.toString() || 'N/A'}`);
-      console.error(`Claude CLI stdout: ${execErr.stdout?.toString() || 'N/A'}`);
-      throw execErr;
-    }
-    console.log(`✓ Claude CLI returned response`);
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 8096,
+      messages: [{ role: 'user', content: prompt }]
+    });
 
-    const payload = JSON.parse(output);
-    const responseText = payload.result || payload.response || '';
+    const responseText = response.content[0]?.text || '';
+    console.log(`✓ Claude API returned response`);
 
+    const inputTokens = response.usage.input_tokens;
+    const outputTokens = response.usage.output_tokens;
+    const costUsd = (inputTokens * 0.80 / 1_000_000) + (outputTokens * 4.00 / 1_000_000);
+
+    console.log(`📊 Tokens used - Input: ${inputTokens}, Output: ${outputTokens}, Cost: $${costUsd.toFixed(6)}`);
     console.log(`📊 Response text (first 200 chars): ${responseText.substring(0, 200)}`);
 
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -161,9 +157,17 @@ async function generateTddWithClaude(project) {
 
     const tdd = JSON.parse(jsonMatch[0]);
     console.log(`✓ Successfully parsed TDD with ${tdd.tasks?.length || 0} tasks across ${tdd.modules?.length || 0} modules`);
-    return tdd;
+
+    return {
+      tdd,
+      tokenMetrics: {
+        inputTokens,
+        outputTokens,
+        costUsd
+      }
+    };
   } catch (err) {
-    console.error('❌ Error calling Claude CLI:', err.message);
+    console.error('❌ Error calling Claude API:', err.message);
     throw new Error('Failed to generate TDD with Claude: ' + err.message);
   }
 }
@@ -235,7 +239,7 @@ async function pollAndProcess() {
       console.error(`✓ STEP 1 DONE: Project "${project.name}" found`);
 
       console.error(`STEP 2: Calling Claude to generate TDD...`);
-      const tdd = await generateTddWithClaude(project);
+      const { tdd, tokenMetrics } = await generateTddWithClaude(project);
       console.error(`✓ STEP 2 DONE`);
 
       console.error(`STEP 3: Updating project with TDD...`);
@@ -260,12 +264,15 @@ async function pollAndProcess() {
       console.error(`✓ STEP 3 DONE: Project updated with TDD (${taskTotal} tasks)`);
 
       console.error(`STEP 4: Marking job as completed...`);
+      const durationMs = Date.now() - new Date(jobData.claimedAt).getTime();
       await jobsCollection.findOneAndUpdate(
         { _id: jobData._id },
         {
           $set: {
             status: 'completed',
             completedAt: new Date(),
+            durationMs,
+            tokenMetrics,
             result: {
               modulesCreated: tdd.modules?.length || 0,
               tasksGenerated: taskTotal,
@@ -274,7 +281,8 @@ async function pollAndProcess() {
           }
         }
       );
-      console.error(`✓ STEP 4 DONE`);
+      console.error(`✓ STEP 4 DONE (duration: ${(durationMs / 1000).toFixed(1)}s)`);
+      console.error(`   Token metrics: Input=${tokenMetrics.inputTokens}, Output=${tokenMetrics.outputTokens}, Cost=$${tokenMetrics.costUsd.toFixed(6)}`);
 
       console.error(`\n🎉 SUCCESS! TDD generated for "${project.name}"`);
       console.error(`${'='.repeat(60)}`);
@@ -313,7 +321,9 @@ async function start() {
     console.log(`   Polling for tdd jobs every 3 seconds...`);
     console.log(`   Press Ctrl+C to stop\n`);
 
-    setInterval(pollAndProcess, 3000);
+    setInterval(async () => {
+      await pollAndProcess();
+    }, 3000);
   } catch (error) {
     console.error('Failed to start Tech Lead Agent:', error);
     process.exit(1);

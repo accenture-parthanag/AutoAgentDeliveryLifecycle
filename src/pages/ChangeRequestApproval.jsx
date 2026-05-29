@@ -10,6 +10,7 @@ export default function ChangeRequestApproval() {
   const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [approvalNotes, setApprovalNotes] = useState('');
+  const reviewStartedAt = React.useRef(new Date().toISOString());
 
   useEffect(() => {
     getProject(projectId)
@@ -28,7 +29,9 @@ export default function ChangeRequestApproval() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           crId,
-          approvalNotes
+          approvalNotes,
+          reviewStartedAt: reviewStartedAt.current,
+          reviewCompletedAt: new Date().toISOString()
         })
       });
 
@@ -60,7 +63,9 @@ export default function ChangeRequestApproval() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           crId,
-          rejectionReason: approvalNotes
+          rejectionReason: approvalNotes,
+          reviewStartedAt: reviewStartedAt.current,
+          reviewCompletedAt: new Date().toISOString()
         })
       });
 

@@ -1,0 +1,107 @@
+{
+  "techStacks": {
+    "rpa": {
+      "label": "RPA (UiPath/Automation Anywhere)",
+      "agentPhaseBaselineHours": {
+        "pdd_review": 8,
+        "sdd": 24,
+        "tdd": 32,
+        "dev": 80,
+        "qa_sit": 40,
+        "qa_uat": 40
+      },
+      "humanReviewBaselineHours": {
+        "pdd-approval": 4,
+        "gap-response": 8,
+        "cr-approval": 32
+      }
+    },
+    "python": {
+      "label": "Python (Django/FastAPI/Data)",
+      "agentPhaseBaselineHours": {
+        "pdd_review": 8,
+        "sdd": 24,
+        "tdd": 32,
+        "dev": 120,
+        "qa_sit": 48,
+        "qa_uat": 48
+      },
+      "humanReviewBaselineHours": {
+        "pdd-approval": 4,
+        "gap-response": 8,
+        "cr-approval": 32
+      }
+    },
+    "lcnc": {
+      "label": "Low-Code/No-Code (Power Apps/Mendix)",
+      "agentPhaseBaselineHours": {
+        "pdd_review": 8,
+        "sdd": 16,
+        "tdd": 24,
+        "dev": 60,
+        "qa_sit": 32,
+        "qa_uat": 32
+      },
+      "humanReviewBaselineHours": {
+        "pdd-approval": 4,
+        "gap-response": 8,
+        "cr-approval": 32
+      }
+    },
+    "vba": {
+      "label": "VBA (Excel/Access)",
+      "agentPhaseBaselineHours": {
+        "pdd_review": 8,
+        "sdd": 20,
+        "tdd": 28,
+        "dev": 100,
+        "qa_sit": 36,
+        "qa_uat": 36
+      },
+      "humanReviewBaselineHours": {
+        "pdd-approval": 4,
+        "gap-response": 8,
+        "cr-approval": 32
+      }
+    },
+    "dotnet": {
+      "label": ".NET (C#/Azure)",
+      "agentPhaseBaselineHours": {
+        "pdd_review": 8,
+        "sdd": 28,
+        "tdd": 36,
+        "dev": 140,
+        "qa_sit": 56,
+        "qa_uat": 56
+      },
+      "humanReviewBaselineHours": {
+        "pdd-approval": 4,
+        "gap-response": 8,
+        "cr-approval": 32
+      }
+    },
+    "java": {
+      "label": "Java (Spring/Microservices)",
+      "agentPhaseBaselineHours": {
+        "pdd_review": 8,
+        "sdd": 32,
+        "tdd": 40,
+        "dev": 160,
+        "qa_sit": 64,
+        "qa_uat": 64
+      },
+      "humanReviewBaselineHours": {
+        "pdd-approval": 4,
+        "gap-response": 8,
+        "cr-approval": 32
+      }
+    }
+  },
+  "complexityMultipliers": {
+    "low": 0.75,
+    "medium": 1.0,
+    "high": 1.5,
+    "very-high": 2.0
+  },
+  "description": "ROI baseline hours per tech stack and complexity level. Project leads can override per-project. All values are in hours."
+}

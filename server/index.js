@@ -6,6 +6,7 @@ const { connectDb } = require('./db');
 
 const projectsRouter = require('./routes/projects');
 const jobsRouter = require('./routes/jobs');
+const analyticsRouter = require('./routes/analytics');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,6 +19,7 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
 // Routes
 app.use('/api/projects', projectsRouter);
 app.use('/api/jobs', jobsRouter);
+app.use('/api/analytics', analyticsRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

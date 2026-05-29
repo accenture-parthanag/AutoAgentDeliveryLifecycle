@@ -242,6 +242,8 @@ router.post('/', async (req, res) => {
       status: 'In Progress',
       startDate,
       targetDate,
+      techStack: req.body.techStack || 'python',
+      complexity: req.body.complexity || 'medium',
       phases: [
         { id: 'pdd-review', label: 'PDD Review (By BA)', icon: 'security', status: 'pending', progress: 0 },
         { id: 'awaiting-bt', label: 'Awaiting BT Response', icon: 'forum', status: 'pending', progress: 0 },
@@ -260,6 +262,7 @@ router.post('/', async (req, res) => {
       artifacts: [],
       activityTimeline: [],
       bugs: [],
+      humanReviewTimings: [],
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -346,19 +349,36 @@ router.put('/:id', async (req, res) => {
 router.post('/:id/cr-approve', async (req, res) => {
   try {
     const db = getDb();
-    const { crId, approvalNotes } = req.body;
+    const { crId, approvalNotes, reviewStartedAt, reviewCompletedAt } = req.body;
+
+    const updates = {
+      $set: {
+        'changeRequests.$.status': 'approved',
+        'changeRequests.$.approvalNotes': approvalNotes,
+        'changeRequests.$.reviewedAt': new Date(),
+        'changeRequests.$.reviewedBy': 'CCB (Change Control Board)',
+        updatedAt: new Date()
+      }
+    };
+
+    if (reviewStartedAt && reviewCompletedAt) {
+      const started = new Date(reviewStartedAt);
+      const completed = new Date(reviewCompletedAt);
+      updates.$push = {
+        humanReviewTimings: {
+          reviewType: 'cr-approval',
+          reviewStartedAt: started,
+          reviewCompletedAt: completed,
+          durationMs: completed - started,
+          reviewedBy: 'CCB (Change Control Board)',
+          crId
+        }
+      };
+    }
 
     const result = await db.collection('projects').findOneAndUpdate(
       { _id: new ObjectId(req.params.id), 'changeRequests.id': crId },
-      {
-        $set: {
-          'changeRequests.$.status': 'approved',
-          'changeRequests.$.approvalNotes': approvalNotes,
-          'changeRequests.$.reviewedAt': new Date(),
-          'changeRequests.$.reviewedBy': 'CCB (Change Control Board)',
-          updatedAt: new Date()
-        }
-      },
+      updates,
       { returnDocument: 'after' }
     );
 
@@ -378,19 +398,36 @@ router.post('/:id/cr-approve', async (req, res) => {
 router.post('/:id/cr-reject', async (req, res) => {
   try {
     const db = getDb();
-    const { crId, rejectionReason } = req.body;
+    const { crId, rejectionReason, reviewStartedAt, reviewCompletedAt } = req.body;
+
+    const updates = {
+      $set: {
+        'changeRequests.$.status': 'rejected',
+        'changeRequests.$.rejectionReason': rejectionReason,
+        'changeRequests.$.reviewedAt': new Date(),
+        'changeRequests.$.reviewedBy': 'CCB (Change Control Board)',
+        updatedAt: new Date()
+      }
+    };
+
+    if (reviewStartedAt && reviewCompletedAt) {
+      const started = new Date(reviewStartedAt);
+      const completed = new Date(reviewCompletedAt);
+      updates.$push = {
+        humanReviewTimings: {
+          reviewType: 'cr-approval',
+          reviewStartedAt: started,
+          reviewCompletedAt: completed,
+          durationMs: completed - started,
+          reviewedBy: 'CCB (Change Control Board)',
+          crId
+        }
+      };
+    }
 
     const result = await db.collection('projects').findOneAndUpdate(
       { _id: new ObjectId(req.params.id), 'changeRequests.id': crId },
-      {
-        $set: {
-          'changeRequests.$.status': 'rejected',
-          'changeRequests.$.rejectionReason': rejectionReason,
-          'changeRequests.$.reviewedAt': new Date(),
-          'changeRequests.$.reviewedBy': 'CCB (Change Control Board)',
-          updatedAt: new Date()
-        }
-      },
+      updates,
       { returnDocument: 'after' }
     );
 
@@ -403,6 +440,96 @@ router.post('/:id/cr-reject', async (req, res) => {
   } catch (error) {
     console.error('Error rejecting change request:', error);
     res.status(400).json({ error: error.message });
+  }
+});
+
+// GET /api/projects/:id/metrics - Get project metrics
+router.get('/:id/metrics', async (req, res) => {
+  try {
+    const db = getDb();
+    const roiBaselines = require('../config/roiBaselines.json');
+    const projectId = req.params.id;
+
+    const project = await db.collection('projects').findOne({
+      _id: new ObjectId(projectId)
+    });
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    const jobs = await db.collection('jobs').find({
+      projectId,
+      status: 'completed'
+    }).toArray();
+
+    const agentJobs = jobs
+      .filter(j => ['pdd_review', 'sdd', 'tdd', 'dev', 'qa_sit', 'qa_uat'].includes(j.stage))
+      .map(j => ({
+        jobId: j._id,
+        stage: j.stage,
+        agentType: j.agentType,
+        claimedAt: j.claimedAt,
+        completedAt: j.completedAt,
+        durationMs: j.durationMs || (j.completedAt && j.claimedAt
+          ? new Date(j.completedAt) - new Date(j.claimedAt)
+          : null),
+        tokenMetrics: j.tokenMetrics || null
+      }));
+
+    const tokenTotals = agentJobs.reduce((acc, j) => {
+      if (!j.tokenMetrics) return acc;
+      acc.inputTokens += j.tokenMetrics.inputTokens || 0;
+      acc.outputTokens += j.tokenMetrics.outputTokens || 0;
+      acc.costUsd += j.tokenMetrics.costUsd || 0;
+      return acc;
+    }, { inputTokens: 0, outputTokens: 0, costUsd: 0 });
+
+    const humanReviewTimings = project.humanReviewTimings || [];
+
+    const totalAgentDurationMs = agentJobs.reduce((s, j) => s + (j.durationMs || 0), 0);
+    const totalHumanReviewMs = humanReviewTimings.reduce((s, r) => s + (r.durationMs || 0), 0);
+    const totalTasks = project.tddDocument?.tasks?.length || project.keyMetrics?.tasksTotal || 0;
+    const completedPhases = (project.phases || []).filter(p => p.status === 'completed').length;
+    const totalPhases = (project.phases || []).length;
+    const changeRequestCount = (project.changeRequests || []).length;
+    const approvedCrCount = (project.changeRequests || []).filter(c => c.status === 'approved').length;
+    const gapCount = (project.baGaps || []).length;
+
+    const techStack = project.techStack || 'python';
+    const complexity = project.complexity || 'medium';
+    const baselineConfig = roiBaselines.techStacks[techStack] || roiBaselines.techStacks.python;
+    const complexityMultiplier = roiBaselines.complexityMultipliers[complexity] || 1.0;
+
+    const agentBaselineMs = Object.values(baselineConfig.agentPhaseBaselineHours).reduce((s, h) => s + (h * 60 * 60 * 1000), 0);
+    const humanBaselineMs = Object.values(baselineConfig.humanReviewBaselineHours).reduce((s, h) => s + (h * 60 * 60 * 1000), 0);
+    const scaledAgentBaselineMs = agentBaselineMs * complexityMultiplier;
+    const scaledHumanBaselineMs = humanBaselineMs * complexityMultiplier;
+
+    const timeSavedMs = (scaledAgentBaselineMs - totalAgentDurationMs) + (scaledHumanBaselineMs - totalHumanReviewMs);
+
+    res.json({
+      projectId,
+      projectName: project.name,
+      techStack,
+      complexity,
+      agentJobs,
+      tokenTotals,
+      humanReviewTimings,
+      roiMetrics: {
+        totalAgentDurationMs,
+        totalHumanReviewMs,
+        timeSavedMs: Math.max(0, timeSavedMs),
+        agentPhaseCount: agentJobs.length,
+        humanReviewCount: humanReviewTimings.length,
+        automationCoverageRatio: totalPhases ? completedPhases / totalPhases : 0,
+        changeRequestRate: totalTasks > 0 ? changeRequestCount / totalTasks : null,
+        reworkRate: changeRequestCount > 0 ? approvedCrCount / changeRequestCount : 0,
+        gapDensity: project.description
+          ? gapCount / Math.max(1, Math.round(project.description.length / 100))
+          : null
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching project metrics:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 

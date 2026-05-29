@@ -73,3 +73,11 @@ export async function getQueueJobs(stage) {
 export async function getJob(jobId) {
   return apiCall(`/jobs/${jobId}`);
 }
+
+export async function getProjectMetrics(id) {
+  return apiCall(`/projects/${id}/metrics`);
+}
+
+export async function getAnalyticsRollup() {
+  return apiCall('/analytics/rollup');
+}

@@ -25,6 +25,7 @@ export default function GapResponse() {
   const [error, setError] = useState(null);
   const [revisedPddFile, setRevisedPddFile] = useState(null);
   const [revisionNotes, setRevisionNotes] = useState('');
+  const reviewStartedAt = React.useRef(new Date().toISOString());
 
   useEffect(() => {
     getProject(projectId)
@@ -89,7 +90,9 @@ export default function GapResponse() {
         revisionNotes,
         isDraft: false,
         respondedAt: new Date().toISOString(),
-        submittedBy: 'BT Team'
+        submittedBy: 'BT Team',
+        reviewStartedAt: reviewStartedAt.current,
+        reviewCompletedAt: new Date().toISOString()
       });
 
       alert('✓ Your responses have been submitted successfully!');

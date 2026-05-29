@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getProjects } from '../api';
+import { getProjects, getAnalyticsRollup } from '../api';
 
 export default function Dashboard() {
   const [showGlossary, setShowGlossary] = useState(false);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
 
   useEffect(() => {
     getProjects()
@@ -32,6 +34,13 @@ export default function Dashboard() {
       })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    getAnalyticsRollup()
+      .then(setAnalytics)
+      .catch(err => console.error('Error loading analytics:', err))
+      .finally(() => setAnalyticsLoading(false));
   }, []);
 
   const totalProjects = projects.length;
@@ -141,6 +150,30 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* LEADERSHIP ANALYTICS - 4 COLUMNS */}
+      {!analyticsLoading && analytics && (
+        <div className="grid grid-4 mb-lg">
+          {[
+            { label: 'Total Est. AI Cost', value: `$${parseFloat(analytics.totalEstimatedCostUsd || 0).toFixed(4)}`, icon: 'payments' },
+            { label: 'Total Time Saved', value: `${Math.floor((analytics.totalAgentDurationMs || 0) / 3600000)}h ${Math.floor(((analytics.totalAgentDurationMs || 0) % 3600000) / 60000)}m`, icon: 'schedule' },
+            { label: 'Avg Completion Time', value: `${Math.floor((analytics.avgTimeToCompletionMs || 0) / 3600000)}h ${Math.floor(((analytics.avgTimeToCompletionMs || 0) % 3600000) / 60000)}m`, icon: 'timer' },
+            { label: 'Rework Rate', value: `${parseFloat(analytics.overallReworkRate || 0).toFixed(1)}%`, icon: 'undo' }
+          ].map((metric, idx) => (
+            <div key={idx} className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--outline-variant)', paddingBottom: 'var(--space-sm)', marginBottom: 'var(--space-md)' }}>
+                <h3 className="label-bold">{metric.label}</h3>
+                <span className="material-symbols-outlined" style={{ color: '#10b981' }}>
+                  {metric.icon}
+                </span>
+              </div>
+              <div style={{ fontSize: '18px', fontWeight: '700', color: 'var(--primary)', fontFamily: 'JetBrains Mono' }}>
+                {metric.value}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* PROJECTS TABLE */}
       <div className="surface mb-lg">
         <h2 style={{ borderBottom: '1px solid var(--outline-variant)', paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
@@ -194,6 +227,43 @@ export default function Dashboard() {
           </tbody>
         </table>
       </div>
+
+      {/* AGENT PERFORMANCE ROLLUP */}
+      {!analyticsLoading && analytics && analytics.agentBreakdown && analytics.agentBreakdown.length > 0 && (
+        <div className="surface mb-lg">
+          <h2 style={{ borderBottom: '1px solid var(--outline-variant)', paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
+            Agent Performance Rollup
+          </h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Agent Type</th>
+                <th style={{ textAlign: 'center' }}>Jobs Run</th>
+                <th style={{ textAlign: 'right' }}>Avg Duration</th>
+                <th style={{ textAlign: 'right' }}>Total Duration</th>
+                <th style={{ textAlign: 'right' }}>Est. Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analytics.agentBreakdown.map((agent, idx) => {
+                const avgMinutes = Math.floor((agent.avgDurationMs || 0) / 60000);
+                const avgSeconds = Math.floor(((agent.avgDurationMs || 0) % 60000) / 1000);
+                const totalMinutes = Math.floor((agent.totalDurationMs || 0) / 60000);
+                const totalSeconds = Math.floor(((agent.totalDurationMs || 0) % 60000) / 1000);
+                return (
+                  <tr key={idx}>
+                    <td>{agent.agentType}</td>
+                    <td style={{ textAlign: 'center', fontFamily: 'JetBrains Mono', fontWeight: '600' }}>{agent.jobCount}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'JetBrains Mono', fontSize: '13px' }}>{avgMinutes}m {avgSeconds}s</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'JetBrains Mono', fontSize: '13px' }}>{totalMinutes}m {totalSeconds}s</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'JetBrains Mono', fontWeight: '600', color: 'var(--primary-container)' }}>${parseFloat(agent.totalCostUsd || 0).toFixed(4)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* QUICK START GRID */}
       <div className="grid grid-2 mb-lg">
