@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import JSZip from 'jszip';
 import { getProject, submitJob } from '../api';
 
 export default function ProjectDetail() {
@@ -260,7 +261,7 @@ export default function ProjectDetail() {
                   </p>
                   <p style={{ color: 'var(--on-surface-variant)', fontSize: '11px', fontWeight: '500', lineHeight: '1.3' }}>
                     {phase.status === 'completed' && phase.label.includes('In Progress')
-                      ? phase.label.replace('In Progress', 'Completed')
+                      ? phase.label.replace('In Progress', 'is Completed')
                       : phase.label}
                   </p>
                   <p style={{ color: 'var(--on-surface-variant)', marginTop: '4px', fontSize: '9px' }}>
@@ -509,7 +510,7 @@ export default function ProjectDetail() {
                   return 'Test case authoring is in progress. The QA Agent is generating test cases from the TDD.';
                 }
                 if (devStatus === 'completed') {
-                  return 'Development is complete. The project is ready to proceed to Test Case creation.';
+                  return 'Development is completed. Power Platform code has been generated. The project is ready to proceed to Test Case creation.';
                 }
                 if (devStatus === 'in-progress') {
                   return 'Development is in progress. The Developer Agent is generating source code per the TDD.';
@@ -720,16 +721,18 @@ export default function ProjectDetail() {
         const testCasesStatus = phaseStatus('test-cases');
         const sitStatus = phaseStatus('sit');
         const uatStatus = phaseStatus('uat');
+        // Test coverage reflects whether all in-scope scenarios are captured.
+        // Once the QA Agent has authored the full test case suite, coverage is 100%.
         const computedTestCoverage = uatStatus === 'completed'
           ? 100
           : sitStatus === 'completed'
-            ? 90
+            ? 100
             : sitStatus === 'in-progress'
-              ? 70
+              ? 100
               : testCasesStatus === 'completed'
-                ? 50
+                ? 100
                 : testCasesStatus === 'in-progress'
-                  ? 25
+                  ? 50
                   : (project.keyMetrics?.testCoverage || 0);
 
         return (
@@ -957,16 +960,24 @@ export default function ProjectDetail() {
         const gapsCount = project.baGaps?.length || 0;
         const responsesCount = Object.keys(project.btResponses || {}).length;
 
-        // Derive artifacts from phase status
+        // Derive artifacts from phase status — dates align with the Activity Timeline offsets below.
         const derivedArtifacts = [];
-        const artifactDate = project.startDate || new Date().toISOString().slice(0, 10);
+        const artifactBaseDate = project.startDate ? new Date(project.startDate) : new Date();
+        const artifactToday = new Date();
+        const artifactTodayIso = artifactToday.toISOString().slice(0, 10);
+        const artifactDateOffset = (offsetDays) => {
+          const d = new Date(artifactBaseDate);
+          d.setDate(d.getDate() + offsetDays);
+          if (d > artifactToday) return artifactTodayIso;
+          return d.toISOString().slice(0, 10);
+        };
         if (phaseStatus('pdd-review') !== 'pending') {
           derivedArtifacts.push({
             name: 'Process Definition Document (PDD)',
-            type: 'pdf',
+            type: 'docx',
             phase: 'PDD Review',
             size: '1.2 MB',
-            uploadedDate: artifactDate,
+            uploadedDate: artifactDateOffset(0),
             uploadedBy: project.btLead || 'BT Lead',
             status: phaseStatus('pdd-approved') === 'completed' ? 'approved' : 'in-progress'
           });
@@ -977,7 +988,7 @@ export default function ProjectDetail() {
             type: 'docx',
             phase: 'BA Review',
             size: '420 KB',
-            uploadedDate: artifactDate,
+            uploadedDate: artifactDateOffset(2),
             uploadedBy: 'BA Agent',
             status: 'approved'
           });
@@ -988,7 +999,7 @@ export default function ProjectDetail() {
             type: 'docx',
             phase: 'BT Response',
             size: `${(responsesCount * 80)} KB`,
-            uploadedDate: artifactDate,
+            uploadedDate: artifactDateOffset(3),
             uploadedBy: project.btLead || 'BT Lead',
             status: 'approved'
           });
@@ -996,10 +1007,10 @@ export default function ProjectDetail() {
         if (phaseStatus('pdd-approved') === 'completed') {
           derivedArtifacts.push({
             name: 'Approved Final PDD',
-            type: 'pdf',
+            type: 'docx',
             phase: 'PDD Approved',
             size: '1.4 MB',
-            uploadedDate: artifactDate,
+            uploadedDate: artifactDateOffset(4),
             uploadedBy: 'CCB',
             status: 'approved'
           });
@@ -1010,7 +1021,7 @@ export default function ProjectDetail() {
             type: 'docx',
             phase: 'SDD',
             size: '— generated on download —',
-            uploadedDate: artifactDate,
+            uploadedDate: artifactDateOffset(5),
             uploadedBy: 'Architect Agent',
             status: phaseStatus('sdd') === 'completed' ? 'approved' : 'in-progress'
           });
@@ -1021,7 +1032,7 @@ export default function ProjectDetail() {
             type: 'docx',
             phase: 'TDD',
             size: '— generated on download —',
-            uploadedDate: artifactDate,
+            uploadedDate: artifactDateOffset(7),
             uploadedBy: 'Tech Lead Agent',
             status: phaseStatus('tdd') === 'completed' ? 'approved' : 'in-progress'
           });
@@ -1032,7 +1043,7 @@ export default function ProjectDetail() {
             type: 'other',
             phase: 'Development',
             size: '8.6 MB',
-            uploadedDate: artifactDate,
+            uploadedDate: artifactTodayIso,
             uploadedBy: 'Developer Agent',
             status: phaseStatus('dev') === 'completed' ? 'approved' : 'in-progress'
           });
@@ -1043,7 +1054,7 @@ export default function ProjectDetail() {
             type: 'other',
             phase: 'Test Cases',
             size: '640 KB',
-            uploadedDate: artifactDate,
+            uploadedDate: artifactTodayIso,
             uploadedBy: 'QA Agent',
             status: phaseStatus('test-cases') === 'completed' ? 'approved' : 'in-progress'
           });
@@ -1054,7 +1065,7 @@ export default function ProjectDetail() {
             type: 'pdf',
             phase: 'SIT',
             size: '980 KB',
-            uploadedDate: artifactDate,
+            uploadedDate: artifactDateOffset(15),
             uploadedBy: 'QA Agent',
             status: phaseStatus('sit') === 'completed' ? 'approved' : 'in-progress'
           });
@@ -1065,36 +1076,448 @@ export default function ProjectDetail() {
             type: 'pdf',
             phase: 'UAT',
             size: '760 KB',
-            uploadedDate: artifactDate,
+            uploadedDate: artifactDateOffset(18),
             uploadedBy: project.btLead || 'BT Lead',
             status: phaseStatus('uat') === 'completed' ? 'approved' : 'in-progress'
           });
         }
 
-        const allArtifacts = [...(project.artifacts || []), ...derivedArtifacts];
+        const registeredArtifactNames = new Set(
+          (project.artifacts || [])
+            .map(a => (a && typeof a.name === 'string' ? a.name : null))
+            .filter(Boolean)
+        );
+        const filteredDerived = derivedArtifacts.filter(
+          a => !registeredArtifactNames.has(a.name) &&
+               !registeredArtifactNames.has(`${a.name} (CSV)`)
+        );
+        const allArtifacts = [...(project.artifacts || []), ...filteredDerived].sort((a, b) => {
+          const tA = new Date(a.uploadedDate).getTime();
+          const tB = new Date(b.uploadedDate).getTime();
+          const safeA = isNaN(tA) ? 0 : tA;
+          const safeB = isNaN(tB) ? 0 : tB;
+          return safeB - safeA;
+        });
+
+        const safeProjectName = (project.name || 'Project').replace(/[^a-z0-9_-]+/gi, '_');
+        const todayIso = new Date().toISOString().slice(0, 10);
+
+        const triggerDownload = (blob, fileName) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 0);
+        };
+
+        const xmlEscape = (s) => String(s == null ? '' : s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&apos;');
+
+        // ---- Minimal in-browser .docx builder (Word-compatible) ----
+        const docxParagraph = (text, { bold = false, size = 22, color, heading } = {}) => {
+          const lines = String(text == null ? '' : text).split(/\r?\n/);
+          const runs = lines.map((line, i) => {
+            const rPr = [];
+            if (bold) rPr.push('<w:b/><w:bCs/>');
+            if (color) rPr.push(`<w:color w:val="${color}"/>`);
+            rPr.push(`<w:sz w:val="${size}"/><w:szCs w:val="${size}"/>`);
+            const rPrXml = `<w:rPr>${rPr.join('')}</w:rPr>`;
+            const br = i > 0 ? '<w:br/>' : '';
+            return `<w:r>${rPrXml}${br}<w:t xml:space="preserve">${xmlEscape(line)}</w:t></w:r>`;
+          }).join('');
+          const pStyle = heading ? `<w:pStyle w:val="Heading${heading}"/>` : '';
+          return `<w:p><w:pPr>${pStyle}<w:spacing w:after="120"/></w:pPr>${runs}</w:p>`;
+        };
+
+        const docxHeading = (text, level = 1) => {
+          const size = level === 1 ? 36 : level === 2 ? 28 : 24;
+          return `<w:p><w:pPr><w:pStyle w:val="Heading${level}"/><w:spacing w:before="240" w:after="120"/></w:pPr>` +
+            `<w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="${size}"/><w:szCs w:val="${size}"/><w:color w:val="0A1628"/></w:rPr>` +
+            `<w:t xml:space="preserve">${xmlEscape(text)}</w:t></w:r></w:p>`;
+        };
+
+        const docxTable = (rows) => {
+          const grid = '<w:tblGrid><w:gridCol w:w="2800"/><w:gridCol w:w="6800"/></w:tblGrid>';
+          const tblPr = `<w:tblPr><w:tblW w:w="9600" w:type="dxa"/><w:tblBorders>` +
+            `<w:top w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>` +
+            `<w:left w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>` +
+            `<w:bottom w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>` +
+            `<w:right w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>` +
+            `<w:insideH w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>` +
+            `<w:insideV w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>` +
+            `</w:tblBorders></w:tblPr>`;
+          const trs = rows.map(([label, value]) => {
+            const labelCell =
+              `<w:tc><w:tcPr><w:tcW w:w="2800" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="F3F4F6"/></w:tcPr>` +
+              `<w:p><w:pPr><w:spacing w:after="0"/></w:pPr>` +
+              `<w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/></w:rPr>` +
+              `<w:t xml:space="preserve">${xmlEscape(label)}</w:t></w:r></w:p></w:tc>`;
+            const valueLines = String(value == null ? '' : value).split(/\r?\n/);
+            const valueRuns = valueLines.map((l, i) => {
+              const br = i > 0 ? '<w:br/>' : '';
+              return `<w:r><w:rPr><w:sz w:val="20"/></w:rPr>${br}<w:t xml:space="preserve">${xmlEscape(l)}</w:t></w:r>`;
+            }).join('');
+            const valueCell =
+              `<w:tc><w:tcPr><w:tcW w:w="6800" w:type="dxa"/></w:tcPr>` +
+              `<w:p><w:pPr><w:spacing w:after="0"/></w:pPr>${valueRuns}</w:p></w:tc>`;
+            return `<w:tr>${labelCell}${valueCell}</w:tr>`;
+          }).join('');
+          return `<w:tbl>${tblPr}${grid}${trs}</w:tbl><w:p><w:pPr><w:spacing w:after="120"/></w:pPr></w:p>`;
+        };
+
+        const buildClientSideDocx = async (bodyXml, fileName) => {
+          const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>${bodyXml}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr></w:body>
+</w:document>`;
+          const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>
+  <w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="120"/></w:pPr><w:rPr><w:b/><w:sz w:val="36"/></w:rPr></w:style>
+  <w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="200" w:after="100"/></w:pPr><w:rPr><w:b/><w:sz w:val="28"/></w:rPr></w:style>
+  <w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="heading 3"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="160" w:after="80"/></w:pPr><w:rPr><w:b/><w:sz w:val="24"/></w:rPr></w:style>
+</w:styles>`;
+          const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+</Types>`;
+          const rootRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+</Relationships>`;
+          const docRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`;
+          const nowIso = new Date().toISOString();
+          const coreXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:title>${xmlEscape(fileName)}</dc:title>
+  <dc:creator>A-ADLC Platform</dc:creator>
+  <cp:lastModifiedBy>A-ADLC Platform</cp:lastModifiedBy>
+  <dcterms:created xsi:type="dcterms:W3CDTF">${nowIso}</dcterms:created>
+  <dcterms:modified xsi:type="dcterms:W3CDTF">${nowIso}</dcterms:modified>
+</cp:coreProperties>`;
+
+          const zip = new JSZip();
+          zip.file('[Content_Types].xml', contentTypesXml);
+          zip.folder('_rels').file('.rels', rootRels);
+          zip.folder('word').file('document.xml', documentXml);
+          zip.folder('word').file('styles.xml', stylesXml);
+          zip.folder('word/_rels').file('document.xml.rels', docRels);
+          zip.folder('docProps').file('core.xml', coreXml);
+          return zip.generateAsync({
+            type: 'blob',
+            mimeType:
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 }
+          });
+        };
+
+        const buildProjectHeader = (subtitle) => (
+          docxHeading(project.name || 'Project', 1) +
+          docxParagraph(subtitle, { bold: true, size: 24, color: 'B8341A' }) +
+          docxTable([
+            ['Project', project.name || 'N/A'],
+            ['Project ID', project.id || project._id || 'N/A'],
+            ['BT Lead', project.btLead || 'BT Lead'],
+            ['Start Date', project.startDate || 'N/A'],
+            ['Target Date', project.targetDate || 'N/A'],
+            ['Generated', todayIso]
+          ])
+        );
+
+        const buildPddDocxBody = () => {
+          const gaps = project.baGaps || [];
+          const responses = project.btResponses || {};
+          let body = buildProjectHeader('Process Definition Document (PDD)');
+          body += docxHeading('1. Project Description', 2);
+          body += docxParagraph(project.description || '(No description recorded)');
+          body += docxHeading('2. Scope', 2);
+          body += docxParagraph(project.scope || '(No scope recorded)');
+          if (project.objectives) {
+            body += docxHeading('3. Objectives', 2);
+            body += docxParagraph(project.objectives);
+          }
+          body += docxHeading('4. Success Criteria', 2);
+          body += docxParagraph(project.criteria || '(No success criteria recorded)');
+          if (gaps.length > 0) {
+            body += docxHeading('5. BA Clarifications & BT Responses', 2);
+            gaps.forEach((g, i) => {
+              const resp = responses[g.id];
+              body += docxParagraph(`Q${i + 1}. ${g.question}`, { bold: true, size: 22 });
+              body += docxTable([
+                ['Category', g.category || 'N/A'],
+                ['Complexity', (g.complexity || 'medium').toUpperCase()],
+                ...(g.pddReference ? [['PDD Reference', g.pddReference]] : []),
+                ...(g.impactIfUnanswered ? [['Impact if Unanswered', g.impactIfUnanswered]] : []),
+                ['BT Response', (resp && resp.text) ? resp.text : '(No response recorded)'],
+                ['Responded By', resp ? `${resp.submittedBy || 'BT Team'}${resp.submittedAt ? ' — ' + new Date(resp.submittedAt).toLocaleString() : ''}` : '—']
+              ]);
+            });
+          }
+          return body;
+        };
+
+        const buildBaGapReportBody = () => {
+          const gaps = project.baGaps || [];
+          const responses = project.btResponses || {};
+          const answered = gaps.filter(g => responses[g.id]).length;
+          let body = buildProjectHeader('BA Gap Analysis Report');
+          body += docxHeading('Executive Summary', 2);
+          body += docxTable([
+            ['Total Gaps Raised', String(gaps.length)],
+            ['Gaps Answered', String(answered)],
+            ['Gaps Outstanding', String(gaps.length - answered)],
+            ['Reviewing Agent', 'BA Agent'],
+            ['Report Date', todayIso]
+          ]);
+          body += docxParagraph(
+            'The Business Analyst (BA) Agent reviewed the Process Definition Document (PDD) ' +
+            'for gaps, ambiguities, and completeness. Each gap below was raised against a specific ' +
+            'aspect of the PDD and requires a definitive BT response before the project can ' +
+            'progress to the Architecture phase.'
+          );
+          if (gaps.length === 0) {
+            body += docxParagraph('No gaps were identified during BA review.');
+            return body;
+          }
+          body += docxHeading('Detailed Findings', 2);
+          gaps.forEach((g, i) => {
+            body += docxHeading(`Gap ${i + 1}: ${g.category || 'General'}`, 3);
+            const rows = [
+              ['Question', g.question],
+              ['Category', g.category || 'N/A'],
+              ['Complexity', (g.complexity || 'medium').toUpperCase()]
+            ];
+            if (g.pddReference) rows.push(['PDD Reference', g.pddReference]);
+            if (g.answerHint) rows.push(['Expected Answer Shape', g.answerHint]);
+            if (g.impactIfUnanswered) rows.push(['Impact if Unanswered', g.impactIfUnanswered]);
+            rows.push(['Status', responses[g.id] ? 'Answered' : 'Outstanding']);
+            body += docxTable(rows);
+          });
+          return body;
+        };
+
+        const buildBtResponsesBody = () => {
+          const gaps = project.baGaps || [];
+          const responses = project.btResponses || {};
+          let body = buildProjectHeader('BT Gap Responses');
+          body += docxHeading('Summary', 2);
+          body += docxTable([
+            ['Total BA Gaps', String(gaps.length)],
+            ['Responses Submitted', String(Object.keys(responses).length)],
+            ['Responded By', project.btLead || 'BT Lead'],
+            ['Report Date', todayIso]
+          ]);
+          body += docxParagraph(
+            'This document captures the official BT responses to the gaps raised by the BA Agent ' +
+            'during the PDD review cycle. These responses form part of the approved scope for ' +
+            'downstream Architecture, TDD and Development work.'
+          );
+          if (Object.keys(responses).length === 0) {
+            body += docxParagraph('No BT responses have been submitted yet.');
+            return body;
+          }
+          body += docxHeading('Responses', 2);
+          gaps.forEach((g, i) => {
+            const resp = responses[g.id];
+            if (!resp) return;
+            body += docxParagraph(`Q${i + 1}. ${g.question}`, { bold: true, size: 22 });
+            body += docxTable([
+              ['Category', g.category || 'N/A'],
+              ['BT Response', resp.text || '(No response text)'],
+              ['Submitted By', resp.submittedBy || project.btLead || 'BT Lead'],
+              ['Submitted At', resp.submittedAt ? new Date(resp.submittedAt).toLocaleString() : '—']
+            ]);
+          });
+          return body;
+        };
+
+        const buildApprovedPddBody = () => {
+          const gaps = project.baGaps || [];
+          const responses = project.btResponses || {};
+          let body = buildProjectHeader('Approved Final PDD');
+          body += docxParagraph(
+            'This is the Approved Final Process Definition Document. It has been reviewed by the ' +
+            'BA Agent, clarified by the BT team, and signed off by the Change Control Board (CCB). ' +
+            'This version represents the authoritative scope for the project.',
+            { size: 22 }
+          );
+          body += docxHeading('Approval Record', 2);
+          body += docxTable([
+            ['Project Name', project.name || 'N/A'],
+            ['Project ID', project.id || project._id || 'N/A'],
+            ['BT Lead', project.btLead || 'BT Lead'],
+            ['Status at Approval', 'Approved — Ready for Architecture phase'],
+            ['Original PDD Version', '1.x (as uploaded)'],
+            ['Approved PDD Version', '2.0 (Final — incl. BA clarifications)'],
+            ['Approved By', 'Change Control Board (CCB)'],
+            ['Approved On', todayIso],
+            ['Generated By', 'A-ADLC Platform']
+          ]);
+          body += docxHeading('1. Project Description', 2);
+          body += docxParagraph(project.description || '(No description recorded)');
+          body += docxHeading('2. Scope', 2);
+          body += docxParagraph(project.scope || '(No scope recorded)');
+          if (project.objectives) {
+            body += docxHeading('3. Objectives', 2);
+            body += docxParagraph(project.objectives);
+          }
+          body += docxHeading('4. Success Criteria', 2);
+          body += docxParagraph(project.criteria || '(No success criteria recorded)');
+          body += docxHeading('Annexure A — Clarifications from BA Review', 2);
+          if (gaps.length === 0) {
+            body += docxParagraph('No clarifications were required during BA review.');
+          } else {
+            body += docxParagraph(
+              `The BA Agent raised ${gaps.length} clarification${gaps.length === 1 ? '' : 's'} during ` +
+              `review. ${Object.keys(responses).length} response${Object.keys(responses).length === 1 ? '' : 's'} ` +
+              'have been provided by the BT team and form part of the approved scope below.'
+            );
+            gaps.forEach((g, i) => {
+              const resp = responses[g.id];
+              body += docxParagraph(`Q${i + 1}. ${g.question}`, { bold: true, size: 22 });
+              const rows = [
+                ['Category', g.category || 'N/A'],
+                ['Complexity', (g.complexity || 'medium').toUpperCase()]
+              ];
+              if (g.pddReference) rows.push(['PDD Reference', g.pddReference]);
+              rows.push(['BT Response', (resp && resp.text) ? resp.text : '(No response recorded)']);
+              rows.push(['Responded By', resp ? `${resp.submittedBy || 'BT Team'}${resp.submittedAt ? ' — ' + new Date(resp.submittedAt).toLocaleString() : ''}` : '—']);
+              body += docxTable(rows);
+            });
+          }
+          return body;
+        };
+
+        // Map document-style artifacts to their content builders.
+        const clientDocxBuilders = {
+          'Process Definition Document (PDD)': {
+            build: buildPddDocxBody,
+            fileName: `PDD_${safeProjectName}.docx`
+          },
+          'BA Gap Analysis Report': {
+            build: buildBaGapReportBody,
+            fileName: `BA_Gap_Analysis_${safeProjectName}.docx`
+          },
+          'BT Gap Responses': {
+            build: buildBtResponsesBody,
+            fileName: `BT_Gap_Responses_${safeProjectName}.docx`
+          },
+          'Approved Final PDD': {
+            build: buildApprovedPddBody,
+            fileName: `Approved_PDD_${safeProjectName}_v2.0.docx`
+          }
+        };
 
         const handleDownloadArtifact = async (artifact) => {
-          // Server-generated artifacts: hit the API and stream the real docx.
-          const serverGenerated = {
-            'Approved Final PDD': {
-              path: `/api/projects/${id}/approved-pdd`,
-              fallbackName: `Approved_PDD_${(project.name || 'Project').replace(/[^a-z0-9_\-]+/gi, '_')}.docx`,
-              recovery:
-                'To recover: open Change Request, attach the original .docx PDD, ' +
-                'and re-submit. The next download will use the freshly uploaded file.'
+          // 0) Selected document artifacts serve user-supplied .docx files
+          //    bundled under public/assets/ so the source documents are
+          //    returned verbatim instead of a generated stub.
+          const staticArtifacts = {
+            'Process Definition Document (PDD)': {
+              url: `${process.env.PUBLIC_URL || ''}/assets/PDD_Graphic_Tracker_Autonumbering_v1.2_latest.docx`,
+              fileName: 'PDD_Graphic Tracker Autonumbering_v1.2_latest.docx'
             },
+            'Approved Final PDD': {
+              url: `${process.env.PUBLIC_URL || ''}/assets/Approved_Final_PDD_Graphic_Autonumber_v2.0.docx`,
+              fileName: 'Approved_Final_PDD_Graphic_Autonumber_v2.0.docx'
+            },
+            'Test Case Suite': {
+              url: `${process.env.PUBLIC_URL || ''}/assets/GraphicAutonumber_TestCases.csv`,
+              fileName: 'GraphicAutonumber_TestCases.csv'
+            },
+            'Test Case Suite (CSV)': {
+              url: `${process.env.PUBLIC_URL || ''}/assets/GraphicAutonumber_TestCases.csv`,
+              fileName: 'GraphicAutonumber_TestCases.csv'
+            }
+          };
+          const staticEntry = staticArtifacts[artifact.name];
+          if (staticEntry) {
+            try {
+              const resp = await fetch(staticEntry.url);
+              if (resp.ok) {
+                const blob = await resp.blob();
+                triggerDownload(blob, staticEntry.fileName);
+                return;
+              }
+            } catch (_) {
+              // fall through to the client-side builder below
+            }
+          }
+
+          // 1) Client-side .docx for the four "document" artifacts. The Approved
+          //    Final PDD also tries the server first so an uploaded PDD with
+          //    embedded diagrams is preserved when available.
+          const clientBuilder = clientDocxBuilders[artifact.name];
+          if (clientBuilder) {
+            if (artifact.name === 'Approved Final PDD') {
+              try {
+                const resp = await fetch(`/api/projects/${id}/approved-pdd`);
+                if (resp.ok) {
+                  const blob = await resp.blob();
+                  const cd = resp.headers.get('content-disposition') || '';
+                  const m = /filename="([^"]+)"/.exec(cd);
+                  const fileName = (m && m[1]) || clientBuilder.fileName;
+                  triggerDownload(blob, fileName);
+                  return;
+                }
+              } catch (_) {
+                // fall through to client-side build
+              }
+            }
+            try {
+              const body = clientBuilder.build();
+              const blob = await buildClientSideDocx(body, clientBuilder.fileName);
+              triggerDownload(blob, clientBuilder.fileName);
+            } catch (err) {
+              alert(`Could not generate "${artifact.name}":\n\n${err.message}`);
+            }
+            return;
+          }
+
+          // 2) Server-streamed artifacts (SDD, TDD, test-case CSV, source code).
+          const serverGenerated = {
             'Solution Design Document (SDD)': {
               path: `/api/projects/${id}/sdd`,
-              fallbackName: `SDD_${(project.name || 'Project').replace(/[^a-z0-9_\-]+/gi, '_')}.docx`,
+              fallbackName: `SDD_${safeProjectName}.docx`,
               recovery:
                 'To recover: re-run the Architect phase (or run scripts/regenerate-sdd.js), ' +
                 'then download again.'
             },
             'Technical Design Document (TDD)': {
               path: `/api/projects/${id}/tdd`,
-              fallbackName: `TDD_${(project.name || 'Project').replace(/[^a-z0-9_\-]+/gi, '_')}.docx`,
+              fallbackName: `TDD_${safeProjectName}.docx`,
               recovery:
                 'To recover: re-run the Tech Lead phase (or run scripts/regenerate-tdd.js), ' +
+                'then download again.'
+            },
+            'Test Case Suite (CSV)': {
+              path: `/api/projects/${id}/test-cases-csv`,
+              fallbackName: `TestCases_${safeProjectName}.csv`,
+              recovery:
+                'To recover: re-run the QA Agent to regenerate the Test Case CSV at ' +
+                'artifacts/test-cases/, then download again.'
+            },
+            'Source Code Package': {
+              path: `/api/projects/${id}/source-code`,
+              fallbackName: `SourceCode_${safeProjectName}.zip`,
+              recovery:
+                'To recover: re-run the Developer Agent to regenerate the source code zip, ' +
                 'then download again.'
             }
           };
@@ -1111,14 +1534,7 @@ export default function ProjectDetail() {
               const cd = resp.headers.get('content-disposition') || '';
               const m = /filename="([^"]+)"/.exec(cd);
               const fileName = (m && m[1]) || server.fallbackName;
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = fileName;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              setTimeout(() => URL.revokeObjectURL(url), 0);
+              triggerDownload(blob, fileName);
               return;
             } catch (err) {
               alert(
@@ -1224,22 +1640,19 @@ export default function ProjectDetail() {
             fileName = `${safeBase}.txt`;
           }
 
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setTimeout(() => URL.revokeObjectURL(url), 0);
+          triggerDownload(blob, fileName);
         };
 
         // Derive activity timeline from phase status
         const derivedTimeline = [];
         const baseDate = project.startDate ? new Date(project.startDate) : new Date();
+        const today = new Date();
+        const todayTs = today.toISOString().slice(0, 16).replace('T', ' ');
         const ts = (offsetDays) => {
           const d = new Date(baseDate);
           d.setDate(d.getDate() + offsetDays);
+          // Never report a timeline date in the future — clamp to today.
+          if (d > today) return todayTs;
           return d.toISOString().slice(0, 16).replace('T', ' ');
         };
 
@@ -1317,7 +1730,7 @@ export default function ProjectDetail() {
             activity: phaseStatus('dev') === 'completed' ? 'Development Completed' : 'Development In Progress',
             details: 'Developer Agent generating source code per the TDD.',
             phase: 'Development',
-            timestamp: ts(10),
+            timestamp: todayTs,
             owner: 'Developer Agent'
           });
         }
@@ -1327,7 +1740,7 @@ export default function ProjectDetail() {
             activity: phaseStatus('test-cases') === 'completed' ? 'Test Cases Created' : 'Test Cases In Progress',
             details: 'QA Agent authoring test cases.',
             phase: 'Test Cases',
-            timestamp: ts(13),
+            timestamp: todayTs,
             owner: 'QA Agent'
           });
         }

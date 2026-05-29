@@ -1,10 +1,14 @@
 const { Router } = require('express');
 const { ObjectId } = require('mongodb');
+const fs = require('fs');
+const path = require('path');
 const { getDb } = require('../db');
 const { generateApprovedPdd } = require('../agents/pdd-generator');
 const { buildSddDocx, buildTddDocx } = require('../agents/doc-builders');
 
 const router = Router();
+
+const PROJECT_ROOT = path.join(__dirname, '..', '..');
 
 const DOCX_MIME =
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -79,6 +83,103 @@ router.get('/:id/tdd', async (req, res) => {
     res.send(buffer);
   } catch (error) {
     console.error('Error generating TDD docx:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Resolve a registered artifact path: supports absolute paths (Windows or POSIX)
+// and repo-relative paths. Returns { absPath, error } where error is set on
+// validation/missing-file failures.
+function resolveArtifactPath(rawPath) {
+  if (typeof rawPath !== 'string' || rawPath.length === 0) {
+    return { error: { status: 400, message: 'Artifact has no path on file' } };
+  }
+  const isAbsolute =
+    path.isAbsolute(rawPath) || /^[A-Za-z]:[\\/]/.test(rawPath);
+
+  let absPath;
+  if (isAbsolute) {
+    absPath = path.resolve(rawPath);
+  } else {
+    const normalized = rawPath.replace(/\\/g, '/').replace(/^\/+/, '');
+    absPath = path.resolve(PROJECT_ROOT, normalized);
+    if (!absPath.startsWith(PROJECT_ROOT)) {
+      return { error: { status: 400, message: 'Invalid artifact path' } };
+    }
+  }
+
+  if (!fs.existsSync(absPath)) {
+    return {
+      error: {
+        status: 404,
+        message: `Artifact file not found on disk at ${rawPath}.`
+      }
+    };
+  }
+  return { absPath };
+}
+
+function streamArtifact(res, absPath, { contentType }) {
+  const fileName = path.basename(absPath);
+  const stat = fs.statSync(absPath);
+  res.setHeader('Content-Type', contentType);
+  res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+  res.setHeader('Content-Length', String(stat.size));
+  fs.createReadStream(absPath).pipe(res);
+}
+
+// GET /api/projects/:id/test-cases-csv - Stream the registered Test Case Suite CSV
+router.get('/:id/test-cases-csv', async (req, res) => {
+  try {
+    const db = getDb();
+    const project = await db.collection('projects').findOne({
+      _id: new ObjectId(req.params.id)
+    });
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    const tcArtifact = (project.artifacts || []).find(a =>
+      a && typeof a.path === 'string' && a.phase === 'Test Cases'
+    );
+    if (!tcArtifact) {
+      return res.status(409).json({
+        error: 'No Test Case Suite has been registered yet. Run the QA agent to generate test cases first.'
+      });
+    }
+
+    const { absPath, error } = resolveArtifactPath(tcArtifact.path);
+    if (error) return res.status(error.status).json({ error: error.message });
+
+    streamArtifact(res, absPath, { contentType: 'text/csv; charset=utf-8' });
+  } catch (error) {
+    console.error('Error streaming test cases CSV:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/projects/:id/source-code - Stream the registered Source Code Package zip
+router.get('/:id/source-code', async (req, res) => {
+  try {
+    const db = getDb();
+    const project = await db.collection('projects').findOne({
+      _id: new ObjectId(req.params.id)
+    });
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    const scArtifact = (project.artifacts || []).find(a =>
+      a && typeof a.path === 'string' && a.phase === 'Development'
+    );
+    if (!scArtifact) {
+      return res.status(409).json({
+        error: 'No Source Code Package has been registered yet. Run the Developer agent first.'
+      });
+    }
+
+    const { absPath, error } = resolveArtifactPath(scArtifact.path);
+    if (error) return res.status(error.status).json({ error: error.message });
+
+    streamArtifact(res, absPath, { contentType: 'application/zip' });
+  } catch (error) {
+    console.error('Error streaming source code package:', error);
     res.status(500).json({ error: error.message });
   }
 });
