@@ -1,4 +1,4 @@
-// Job queue stages - one per A-ADLC phase
+// Job queue stages - one per Agent Driven Automation phase
 const STAGES = {
   PDD_REVIEW: 'pdd_review',
   SDD: 'sdd',
@@ -47,8 +47,6 @@ function createJob(projectId, stage, context, priority = 3) {
     result: null,
     claimedAt: null,
     completedAt: null,
-    durationMs: null,
-    tokenMetrics: null,
     createdAt: new Date(),
     updatedAt: new Date()
   };

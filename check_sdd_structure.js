@@ -4,7 +4,7 @@ const { MongoClient } = require('mongodb');
 (async () => {
   const client = new MongoClient(process.env.MONGODB_URI);
   await client.connect();
-  const db = client.db('aadlc');
+  const db = client.db('agent_automation');
   
   const project = await db.collection('projects').findOne({});
   const sdd = project.sddDocument;

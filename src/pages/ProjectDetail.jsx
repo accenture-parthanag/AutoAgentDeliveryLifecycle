@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import JSZip from 'jszip';
-import { getProject, submitJob, getProjectMetrics } from '../api';
+import { getProject, submitJob } from '../api';
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -16,8 +16,6 @@ export default function ProjectDetail() {
   const [tddDispatching, setTddDispatching] = useState(false);
   const [tddStartedAt, setTddStartedAt] = useState(null);
   const [nowTick, setNowTick] = useState(Date.now());
-  const [metrics, setMetrics] = useState(null);
-  const [metricsLoading, setMetricsLoading] = useState(false);
 
   useEffect(() => {
     getProject(id)
@@ -70,17 +68,6 @@ export default function ProjectDetail() {
       });
     }
   }, [project]);
-
-  // Fetch metrics when Metrics tab is activated
-  useEffect(() => {
-    if (activeTab === 'metrics' && !metrics && id) {
-      setMetricsLoading(true);
-      getProjectMetrics(id)
-        .then(setMetrics)
-        .catch(err => console.error('Error loading metrics:', err))
-        .finally(() => setMetricsLoading(false));
-    }
-  }, [activeTab, id, metrics]);
 
   const acronymGlossary = [
     { acronym: 'PDD', full: 'Process Definition Document', description: 'Initial requirements and business objectives document submitted by BT' },
@@ -205,7 +192,9 @@ export default function ProjectDetail() {
       {/* PAGE HEADER */}
       <div className="border-b pb-md mb-lg">
         <h1>{project.name}</h1>
-        <div className="body-lg mt-md" style={{ color: 'var(--on-surface-variant)', maxWidth: '600px' }} dangerouslySetInnerHTML={{ __html: project.description || '' }} />
+        <p className="body-lg mt-md" style={{ color: 'var(--on-surface-variant)', maxWidth: '600px' }}>
+          {project.description}
+        </p>
       </div>
 
       {/* PROJECT INFO GRID */}
@@ -577,7 +566,7 @@ export default function ProjectDetail() {
                       <p className="label-bold" style={{ color: 'var(--primary-container)', marginBottom: 'var(--space-xs)' }}>
                         Question {gap.id}
                       </p>
-                      <div className="body-md" dangerouslySetInnerHTML={{ __html: gap.question || '' }} />
+                      <p className="body-md">{gap.question}</p>
                     </div>
                     {btResponse && (
                       <span style={{
@@ -629,7 +618,9 @@ export default function ProjectDetail() {
                       <p style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#10b981', marginBottom: '8px' }}>
                         BT Response
                       </p>
-                      <div className="body-md" style={{ margin: '0 0 12px 0', lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: btResponse.text || '' }} />
+                      <p className="body-md" style={{ margin: '0 0 12px 0', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
+                        {btResponse.text}
+                      </p>
                       <p style={{ fontSize: '11px', color: 'var(--on-surface-variant)', margin: 0 }}>
                         Submitted on {new Date(btResponse.submittedAt).toLocaleString()}
                       </p>
@@ -916,13 +907,17 @@ export default function ProjectDetail() {
             <h3 style={{ borderBottom: '1px solid var(--outline-variant)', paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
               Scope
             </h3>
-            <div className="body-md" style={{ color: 'var(--on-surface-variant)' }} dangerouslySetInnerHTML={{ __html: project.scope || '' }} />
+            <p className="body-md" style={{ color: 'var(--on-surface-variant)' }}>
+              {project.scope}
+            </p>
           </div>
           <div>
             <h3 style={{ borderBottom: '1px solid var(--outline-variant)', paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
               Success Criteria
             </h3>
-            <div className="body-md" style={{ color: 'var(--on-surface-variant)' }} dangerouslySetInnerHTML={{ __html: project.criteria || '' }} />
+            <p className="body-md" style={{ color: 'var(--on-surface-variant)' }}>
+              {project.criteria}
+            </p>
           </div>
         </div>
       </div>
@@ -1824,21 +1819,6 @@ export default function ProjectDetail() {
             </button>
           )}
           <button
-            onClick={() => setActiveTab('metrics')}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '12px 16px',
-              borderBottom: activeTab === 'metrics' ? '2px solid var(--primary)' : 'none',
-              color: activeTab === 'metrics' ? 'var(--primary)' : 'var(--on-surface-variant)',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            Metrics
-          </button>
-          <button
             onClick={() => setActiveTab('audit')}
             style={{
               background: 'none',
@@ -2021,163 +2001,6 @@ export default function ProjectDetail() {
               <p className="body-md" style={{ color: 'var(--on-surface-variant)', textAlign: 'center', padding: 'var(--space-lg)' }}>
                 No bugs reported yet
               </p>
-            )}
-          </div>
-        )}
-
-        {/* METRICS TAB */}
-        {activeTab === 'metrics' && (
-          <div>
-            <h3 style={{ marginBottom: 'var(--space-lg)' }}>Project Metrics & Performance Analysis</h3>
-            {metricsLoading && (
-              <p style={{ color: 'var(--on-surface-variant)', fontStyle: 'italic' }}>Loading metrics...</p>
-            )}
-            {!metricsLoading && metrics && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
-
-                {/* A. AGENT PROCESSING TIME */}
-                {metrics.agentJobs && metrics.agentJobs.length > 0 && (
-                  <section>
-                    <h4 style={{ marginBottom: 'var(--space-md)' }}>Agent Processing Time</h4>
-                    <div style={{ overflowX: 'auto', marginBottom: 'var(--space-lg)' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '1px solid var(--outline-variant)' }}>
-                            <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: '600', color: 'var(--on-surface-variant)' }}>Agent</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: '600', color: 'var(--on-surface-variant)' }}>Stage</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: '600', color: 'var(--on-surface-variant)' }}>Duration</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: '600', color: 'var(--on-surface-variant)', width: '200px' }}>Progress Bar</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {metrics.agentJobs.map((job, idx) => {
-                            const maxDuration = Math.max(...metrics.agentJobs.map(j => j.durationMs || 0));
-                            const percentage = maxDuration > 0 ? ((job.durationMs || 0) / maxDuration) * 100 : 0;
-                            const minutes = Math.floor((job.durationMs || 0) / 60000);
-                            const seconds = Math.floor(((job.durationMs || 0) % 60000) / 1000);
-                            return (
-                              <tr key={idx} style={{ borderBottom: '1px solid var(--outline-variant)' }}>
-                                <td style={{ padding: '12px', textAlign: 'left' }}>{job.agentType || 'Unknown'}</td>
-                                <td style={{ padding: '12px', textAlign: 'left' }}>{job.stage}</td>
-                                <td style={{ padding: '12px', textAlign: 'left', fontFamily: '"JetBrains Mono"' }}>{minutes}m {seconds}s</td>
-                                <td style={{ padding: '12px' }}>
-                                  <div style={{ width: '100%', height: '24px', backgroundColor: 'var(--outline-variant)', borderRadius: '4px', overflow: 'hidden' }}>
-                                    <div style={{ width: `${percentage}%`, height: '100%', backgroundColor: 'var(--primary-container)', transition: 'width 0.3s' }}></div>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
-                )}
-
-                {/* B. HUMAN REVIEW TIME */}
-                {metrics.humanReviewTimings && metrics.humanReviewTimings.length > 0 && (
-                  <section>
-                    <h4 style={{ marginBottom: 'var(--space-md)' }}>Human Review Time</h4>
-                    <div style={{ overflowX: 'auto', marginBottom: 'var(--space-lg)' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '1px solid var(--outline-variant)' }}>
-                            <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: '600', color: 'var(--on-surface-variant)' }}>Review Type</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: '600', color: 'var(--on-surface-variant)' }}>Reviewer</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: '600', color: 'var(--on-surface-variant)' }}>Duration</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: '600', color: 'var(--on-surface-variant)', width: '200px' }}>Progress Bar</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {metrics.humanReviewTimings.map((review, idx) => {
-                            const maxDuration = Math.max(...metrics.humanReviewTimings.map(r => r.durationMs || 0));
-                            const percentage = maxDuration > 0 ? ((review.durationMs || 0) / maxDuration) * 100 : 0;
-                            const minutes = Math.floor((review.durationMs || 0) / 60000);
-                            const seconds = Math.floor(((review.durationMs || 0) % 60000) / 1000);
-                            return (
-                              <tr key={idx} style={{ borderBottom: '1px solid var(--outline-variant)' }}>
-                                <td style={{ padding: '12px', textAlign: 'left' }}>{review.reviewType}</td>
-                                <td style={{ padding: '12px', textAlign: 'left' }}>{review.reviewedBy}</td>
-                                <td style={{ padding: '12px', textAlign: 'left', fontFamily: '"JetBrains Mono"' }}>{minutes}m {seconds}s</td>
-                                <td style={{ padding: '12px' }}>
-                                  <div style={{ width: '100%', height: '24px', backgroundColor: 'var(--outline-variant)', borderRadius: '4px', overflow: 'hidden' }}>
-                                    <div style={{ width: `${percentage}%`, height: '100%', backgroundColor: '#10b981', transition: 'width 0.3s' }}></div>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
-                )}
-
-                {/* C. TOKEN USAGE & COST */}
-                <section>
-                  <h4 style={{ marginBottom: 'var(--space-md)' }}>Token Usage & Estimated Cost</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
-                    <div style={{ padding: 'var(--space-lg)', backgroundColor: 'var(--surface)', border: '1px solid var(--outline-variant)' }}>
-                      <p style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--on-surface-variant)', letterSpacing: '0.1em', marginBottom: '4px' }}>Total Input Tokens</p>
-                      <p style={{ fontSize: '20px', fontFamily: '"JetBrains Mono"', fontWeight: '600' }}>{metrics.tokenTotals?.inputTokens || 0}</p>
-                    </div>
-                    <div style={{ padding: 'var(--space-lg)', backgroundColor: 'var(--surface)', border: '1px solid var(--outline-variant)' }}>
-                      <p style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--on-surface-variant)', letterSpacing: '0.1em', marginBottom: '4px' }}>Total Output Tokens</p>
-                      <p style={{ fontSize: '20px', fontFamily: '"JetBrains Mono"', fontWeight: '600' }}>{metrics.tokenTotals?.outputTokens || 0}</p>
-                    </div>
-                    <div style={{ padding: 'var(--space-lg)', backgroundColor: 'var(--surface)', border: '1px solid var(--outline-variant)' }}>
-                      <p style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--on-surface-variant)', letterSpacing: '0.1em', marginBottom: '4px' }}>Est. Total Cost</p>
-                      <p style={{ fontSize: '20px', fontFamily: '"JetBrains Mono"', fontWeight: '600', color: 'var(--primary-container)' }}>${parseFloat(metrics.tokenTotals?.costUsd || 0).toFixed(4)}</p>
-                    </div>
-                    <div style={{ padding: 'var(--space-lg)', backgroundColor: 'var(--surface)', border: '1px solid var(--outline-variant)' }}>
-                      <p style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--on-surface-variant)', letterSpacing: '0.1em', marginBottom: '4px' }}>Tech Stack</p>
-                      <p style={{ fontSize: '16px', fontWeight: '500' }}>{metrics.techStack || 'N/A'}</p>
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '12px', color: 'var(--on-surface-variant)', fontStyle: 'italic', marginTop: 'var(--space-md)' }}>
-                    💡 Pricing based on Claude Haiku 4.5: $0.80/M input tokens, $4.00/M output tokens
-                  </p>
-                </section>
-
-                {/* D. ROI & BENEFIT METRICS */}
-                <section>
-                  <h4 style={{ marginBottom: 'var(--space-md)' }}>ROI & Benefit Metrics</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
-                    <div style={{ padding: 'var(--space-lg)', backgroundColor: 'var(--surface)', border: '1px solid var(--outline-variant)' }}>
-                      <p style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--on-surface-variant)', letterSpacing: '0.1em', marginBottom: '4px' }}>Time Saved</p>
-                      <p style={{ fontSize: '20px', fontFamily: '"JetBrains Mono"', fontWeight: '600' }}>
-                        {Math.floor((metrics.roiMetrics?.timeSavedMs || 0) / 3600000)}h {Math.floor(((metrics.roiMetrics?.timeSavedMs || 0) % 3600000) / 60000)}m
-                      </p>
-                    </div>
-                    <div style={{ padding: 'var(--space-lg)', backgroundColor: 'var(--surface)', border: '1px solid var(--outline-variant)' }}>
-                      <p style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--on-surface-variant)', letterSpacing: '0.1em', marginBottom: '4px' }}>Automation Coverage</p>
-                      <p style={{ fontSize: '20px', fontFamily: '"JetBrains Mono"', fontWeight: '600', color: 'var(--primary-container)' }}>
-                        {(parseFloat(metrics.roiMetrics?.automationCoverageRatio || 0) * 100).toFixed(0)}%
-                      </p>
-                    </div>
-                    <div style={{ padding: 'var(--space-lg)', backgroundColor: 'var(--surface)', border: '1px solid var(--outline-variant)' }}>
-                      <p style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--on-surface-variant)', letterSpacing: '0.1em', marginBottom: '4px' }}>Rework Rate</p>
-                      <p style={{ fontSize: '20px', fontFamily: '"JetBrains Mono"', fontWeight: '600' }}>
-                        {(parseFloat(metrics.roiMetrics?.reworkRate || 0) * 100).toFixed(1)}%
-                      </p>
-                    </div>
-                    <div style={{ padding: 'var(--space-lg)', backgroundColor: 'var(--surface)', border: '1px solid var(--outline-variant)' }}>
-                      <p style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--on-surface-variant)', letterSpacing: '0.1em', marginBottom: '4px' }}>Gap Density</p>
-                      <p style={{ fontSize: '20px', fontFamily: '"JetBrains Mono"', fontWeight: '600' }}>
-                        {(metrics.roiMetrics?.gapDensity || 0).toFixed(2)}/100
-                      </p>
-                    </div>
-                  </div>
-                  <div style={{ padding: 'var(--space-lg)', backgroundColor: '#f9f5f0', borderLeft: '3px solid var(--primary-container)', marginTop: 'var(--space-lg)' }}>
-                    <p style={{ fontSize: '13px', color: 'var(--on-surface)', lineHeight: '1.6' }}>
-                      <strong>Baseline Assumptions:</strong> Time Saved calculation assumes {metrics.roiMetrics?.agentPhaseCount || 0} agent phase(s) at ~2-8h manual baseline each, and {metrics.roiMetrics?.humanReviewCount || 0} human review action(s) at ~4h manual baseline each. Actual time savings depends on project complexity and team experience.
-                    </p>
-                  </div>
-                </section>
-              </div>
-            )}
-            {!metricsLoading && !metrics && (
-              <p style={{ color: 'var(--on-surface-variant)', fontStyle: 'italic' }}>No metrics data available yet. Complete agent phases to see metrics.</p>
             )}
           </div>
         )}

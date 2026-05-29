@@ -1,8 +1,8 @@
-# A-ADLC Platform - Multi-Process Launcher
-# Starts all three processes needed for full platform functionality
+# Agent Driven Automation - Multi-Process Launcher (Background)
+# Starts all processes in the background with logging
 
 Write-Host "========================================================"
-Write-Host "  A-ADLC Platform - Starting All Processes"
+Write-Host "  Agent Driven Automation - Starting All Processes"
 Write-Host "========================================================"
 Write-Host ""
 
@@ -16,6 +16,13 @@ if (-not (Test-Path "$scriptDir\package.json")) {
     exit 1
 }
 
+# Create logs directory
+$logsDir = "$scriptDir\logs"
+if (-not (Test-Path $logsDir)) {
+    New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
+    Write-Host "Created logs directory: $logsDir" -ForegroundColor Green
+}
+
 # Check if node_modules exists
 if (-not (Test-Path "$scriptDir\node_modules")) {
     Write-Host "node_modules not found. Running npm install..." -ForegroundColor Yellow
@@ -25,25 +32,6 @@ if (-not (Test-Path "$scriptDir\node_modules")) {
         Write-Host "npm install failed" -ForegroundColor Red
         exit 1
     }
-}
-
-# Close existing service windows by title
-Write-Host "Closing any existing service windows..." -ForegroundColor Yellow
-try {
-    $windowTitles = @("FRONTEND - npm start", "BACKEND - npm run server", "BA AGENT - npm run ba-agent", "ARCHITECT AGENT - npm run architect-agent", "TECH LEAD AGENT - npm run tech-lead-agent")
-    $psProcesses = Get-Process powershell -ErrorAction SilentlyContinue
-
-    foreach ($psProcess in $psProcesses) {
-        foreach ($title in $windowTitles) {
-            if ($psProcess.MainWindowTitle -like "*$title*") {
-                Write-Host "  Closing: $($psProcess.MainWindowTitle)" -ForegroundColor Yellow
-                Stop-Process -Id $psProcess.Id -Force -ErrorAction SilentlyContinue
-            }
-        }
-    }
-    Start-Sleep -Milliseconds 500
-} catch {
-    Write-Host "  Note: Could not close existing windows (this is okay)" -ForegroundColor Gray
 }
 
 # Kill existing node processes
@@ -67,55 +55,65 @@ try {
 Write-Host "Prerequisites checked" -ForegroundColor Green
 Write-Host ""
 
-# Function to start a process in a new window
-function Start-ProcessWindow {
-    param([string]$Title, [string]$Command, [int]$Index)
+# Function to start a process in background with logging
+function Start-BackgroundProcess {
+    param(
+        [string]$Name,
+        [string]$Command,
+        [string]$LogFile
+    )
 
-    Write-Host "Starting: $Title" -ForegroundColor Cyan
+    Write-Host "Starting: $Name" -ForegroundColor Cyan
 
-    $scriptPath = $script:scriptDir
-    $newWindowCmd = "cd '$scriptPath'; `$title = '$Title'; `$host.ui.RawUI.WindowTitle = `$title; $Command"
+    # Start process with output redirected to log file
+    $process = Start-Process -FilePath "cmd.exe" `
+        -ArgumentList "/c", "cd /d $scriptDir && $Command >> $LogFile 2>&1" `
+        -WindowStyle Hidden `
+        -PassThru
 
-    # Open as separate window (not tab)
-    $process = Start-Process -FilePath "powershell.exe" -ArgumentList "-Command",$newWindowCmd -WorkingDirectory $scriptPath -PassThru
-
-    # Give it time to open
-    Start-Sleep -Milliseconds 800
+    Write-Host "  PID: $($process.Id), Logging to: $([System.IO.Path]::GetFileName($LogFile))" -ForegroundColor Gray
 }
 
-# Start all three processes
+# Clear old logs
+Write-Host "Clearing previous logs..." -ForegroundColor Yellow
+Get-ChildItem "$logsDir\*.log" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+
 Write-Host ""
-Write-Host "Opening process windows..." -ForegroundColor Cyan
+Write-Host "Starting background processes..." -ForegroundColor Cyan
 Write-Host ""
 
-Start-ProcessWindow -Title "FRONTEND - npm start (port 3000)" -Command "`$env:PORT=3000; npm start" -Index 0
-Start-Sleep -Seconds 4
+# Start all processes in background
+Start-BackgroundProcess -Name "Frontend (npm start)" -Command "set PORT=3000 && npm start" -LogFile "$logsDir\frontend.log"
+Start-Sleep -Seconds 3
 
-Start-ProcessWindow -Title "BACKEND - npm run server (port 5000)" -Command "npm run server" -Index 1
-Start-Sleep -Seconds 4
+Start-BackgroundProcess -Name "Backend (npm run server)" -Command "npm run server" -LogFile "$logsDir\backend.log"
+Start-Sleep -Seconds 3
 
-Start-ProcessWindow -Title "BA AGENT - npm run ba-agent" -Command "npm run ba-agent" -Index 2
+Start-BackgroundProcess -Name "BA Agent" -Command "npm run ba-agent" -LogFile "$logsDir\ba-agent.log"
 Start-Sleep -Seconds 2
 
-Start-ProcessWindow -Title "ARCHITECT AGENT - npm run architect-agent" -Command "npm run architect-agent" -Index 3
+Start-BackgroundProcess -Name "Architect Agent" -Command "npm run architect-agent" -LogFile "$logsDir\architect-agent.log"
 Start-Sleep -Seconds 2
 
-Start-ProcessWindow -Title "TECH LEAD AGENT - npm run tech-lead-agent" -Command "npm run tech-lead-agent" -Index 4
+Start-BackgroundProcess -Name "Tech Lead Agent" -Command "npm run tech-lead-agent" -LogFile "$logsDir\tech-lead-agent.log"
 
 # Summary
 Write-Host ""
 Write-Host "========================================================"
-Write-Host "  All Processes Started!" -ForegroundColor Green
+Write-Host "  Agent Driven Automation - All Processes Started" -ForegroundColor Green
 Write-Host "========================================================"
 Write-Host ""
 Write-Host "Service Status:" -ForegroundColor Cyan
-Write-Host "  Frontend:   http://localhost:3000" -ForegroundColor Cyan
-Write-Host "  Backend:    http://localhost:5000/api/health" -ForegroundColor Magenta
-Write-Host "  BA Agent:        Running (check agent window)" -ForegroundColor Green
-Write-Host "  Architect Agent: Running (check agent window)" -ForegroundColor Yellow
-Write-Host "  Tech Lead Agent: Running (check agent window)" -ForegroundColor Cyan
+Write-Host "  Frontend:          http://localhost:3000" -ForegroundColor Cyan
+Write-Host "  Backend Health:    http://localhost:5000/api/health" -ForegroundColor Magenta
+Write-Host "  BA Agent:          Running in background" -ForegroundColor Green
+Write-Host "  Architect Agent:   Running in background" -ForegroundColor Yellow
+Write-Host "  Tech Lead Agent:   Running in background" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Waiting for processes to initialize..." -ForegroundColor Yellow
+Write-Host "Log Files (in $logsDir):" -ForegroundColor Gray
+Write-Host "  frontend.log, backend.log, ba-agent.log, architect-agent.log, tech-lead-agent.log" -ForegroundColor Gray
+Write-Host ""
+Write-Host "Waiting for services to initialize..." -ForegroundColor Yellow
 Write-Host ""
 
 # Wait and verify
@@ -129,7 +127,7 @@ while ($elapsed -lt $maxWait) {
         try {
             $response = Invoke-WebRequest -Uri "http://localhost:3000" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
             if ($response.StatusCode -eq 200) {
-                Write-Host "  Frontend is ready!" -ForegroundColor Green
+                Write-Host "  ✓ Frontend is ready!" -ForegroundColor Green
                 $frontendReady = $true
             }
         } catch { }
@@ -139,7 +137,7 @@ while ($elapsed -lt $maxWait) {
         try {
             $response = Invoke-RestMethod -Uri "http://localhost:5000/api/health" -TimeoutSec 2 -ErrorAction SilentlyContinue
             if ($response.status -eq "ok") {
-                Write-Host "  Backend is ready!" -ForegroundColor Green
+                Write-Host "  ✓ Backend is ready!" -ForegroundColor Green
                 $backendReady = $true
             }
         } catch { }
@@ -158,12 +156,14 @@ Write-Host "========================================================"
 Write-Host "Ready to go! Visit http://localhost:3000 in your browser" -ForegroundColor Green
 Write-Host "========================================================"
 Write-Host ""
-Write-Host "IMPORTANT: Look for the FRONTEND window" -ForegroundColor Yellow
-Write-Host "  If React asks about port 5000, press Y to use another port" -ForegroundColor Gray
-Write-Host "  The Frontend should open on http://localhost:3000" -ForegroundColor Gray
+Write-Host "View Logs:" -ForegroundColor Yellow
+Write-Host "  Frontend:        tail -f logs\frontend.log" -ForegroundColor Gray
+Write-Host "  Backend:         tail -f logs\backend.log" -ForegroundColor Gray
+Write-Host "  BA Agent:        tail -f logs\ba-agent.log" -ForegroundColor Gray
+Write-Host "  Architect Agent: tail -f logs\architect-agent.log" -ForegroundColor Gray
+Write-Host "  Tech Lead Agent: tail -f logs\tech-lead-agent.log" -ForegroundColor Gray
 Write-Host ""
-Write-Host "To stop all processes:" -ForegroundColor Yellow
-Write-Host "  1. Close the three service windows, OR" -ForegroundColor Gray
-Write-Host "  2. Run: .\stop-all.ps1" -ForegroundColor Gray
-Write-Host "  3. Or press Ctrl+C in each window" -ForegroundColor Gray
+Write-Host "Stop All Processes:" -ForegroundColor Yellow
+Write-Host "  Run: .\stop-all.ps1" -ForegroundColor Gray
+Write-Host "  Or: Stop-Process -Name node -Force" -ForegroundColor Gray
 Write-Host ""

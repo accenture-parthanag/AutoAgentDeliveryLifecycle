@@ -1,9 +1,9 @@
-# A-ADLC Platform - Process Terminator
+# Agent Driven Automation - Process Terminator
 # Stops all running services and closes PowerShell windows
 
 Write-Host ""
 Write-Host "========================================================"
-Write-Host "  A-ADLC Platform - Stopping All Processes"
+Write-Host "  Agent Driven Automation - Stopping All Processes"
 Write-Host "========================================================"
 Write-Host ""
 

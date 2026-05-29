@@ -85,12 +85,8 @@
       "PowerShell(node -e \"const p = require\\('./package.json'\\); console.log\\('proxy:', p.proxy || 'none'\\); console.log\\('main:', p.main\\);\")",
       "PowerShell(npm start)",
       "PowerShell(npm run *)",
-      "PowerShell(Get-ChildItem -Path \"artifacts\", \"public/assets\" -ErrorAction SilentlyContinue | Select-Object FullName, @{N=\"Type\"; E={if \\($_.PSIsContainer\\) { \"DIR\" } else { \"FILE\" }}} | Format-List)",
-      "Bash(git add *)",
-      "Bash(git commit -m ' *)",
-      "Bash(timeout 5 node index.js)",
-      "Bash(pkill -f \"node index.js\")",
-      "Bash(pkill -f \"npm start\")"
+      "Bash(node clean-db.js)",
+      "Bash(git add *)"
     ]
   }
 }

@@ -140,7 +140,7 @@ async function buildSddDocx({ project, sdd, imageManifest }) {
   body.push(new Paragraph({
     alignment: AlignmentType.CENTER,
     spacing: { after: 400 },
-    children: [new TextRun({ text: `Generated ${new Date().toISOString().split('T')[0]} · A-ADLC Architect Agent`, italics: true, size: 20 })]
+    children: [new TextRun({ text: `Generated ${new Date().toISOString().split('T')[0]} · Agent Driven Automation - Architect Agent`, italics: true, size: 20 })]
   }));
   body.push(kvTable([
     ['Project ID', project._id?.toString() || ''],
@@ -321,7 +321,7 @@ async function buildSddDocx({ project, sdd, imageManifest }) {
   }
 
   const doc = new Document({
-    creator: 'A-ADLC Architect Agent',
+    creator: 'Agent Driven Automation - Architect Agent',
     title: `SDD — ${project.name}`,
     description: 'System Design Document',
     sections: [{
@@ -358,7 +358,7 @@ async function buildTddDocx({ project, tdd, imageManifest }) {
   body.push(new Paragraph({
     alignment: AlignmentType.CENTER,
     spacing: { after: 400 },
-    children: [new TextRun({ text: `Generated ${new Date().toISOString().split('T')[0]} · A-ADLC Tech Lead Agent`, italics: true, size: 20 })]
+    children: [new TextRun({ text: `Generated ${new Date().toISOString().split('T')[0]} · Agent Driven Automation - Tech Lead Agent`, italics: true, size: 20 })]
   }));
   body.push(kvTable([
     ['Project ID', project._id?.toString() || ''],
@@ -493,7 +493,7 @@ async function buildTddDocx({ project, tdd, imageManifest }) {
   }
 
   const doc = new Document({
-    creator: 'A-ADLC Tech Lead Agent',
+    creator: 'Agent Driven Automation - Tech Lead Agent',
     title: `TDD — ${project.name}`,
     description: 'Technical Design Document',
     sections: [{

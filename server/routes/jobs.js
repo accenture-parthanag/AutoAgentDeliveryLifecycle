@@ -26,7 +26,7 @@ router.post('/', async (req, res) => {
     if (cleanedContext.pddFileContent) {
       try {
         // Save file to disk and store path reference
-        const pddDir = path.join(os.tmpdir(), 'aadlc-pdds');
+        const pddDir = path.join(os.tmpdir(), 'agent-automation-pdds');
         if (!fs.existsSync(pddDir)) {
           fs.mkdirSync(pddDir, { recursive: true });
         }
@@ -77,31 +77,14 @@ router.post('/', async (req, res) => {
             return p;
           });
 
-          const updateOps = {
-            $set: {
-              phases: updatedPhases,
-              updatedAt: new Date()
-            }
-          };
-
-          if (cleanedContext.reviewStartedAt && cleanedContext.reviewCompletedAt) {
-            const started = new Date(cleanedContext.reviewStartedAt);
-            const completed = new Date(cleanedContext.reviewCompletedAt);
-            updateOps.$push = {
-              humanReviewTimings: {
-                reviewType: 'pdd-approval',
-                reviewStartedAt: started,
-                reviewCompletedAt: completed,
-                durationMs: completed - started,
-                reviewedBy: cleanedContext.approvedBy || 'BT Team',
-                crId: null
-              }
-            };
-          }
-
           const updateResult = await db.collection('projects').findOneAndUpdate(
             { _id: new ObjectId(projectId) },
-            updateOps,
+            {
+              $set: {
+                phases: updatedPhases,
+                updatedAt: new Date()
+              }
+            },
             { returnDocument: 'after' }
           );
 
@@ -206,27 +189,9 @@ router.post('/', async (req, res) => {
           }
         }
 
-        const updateOps = { $set: updateData };
-
-        // Add review timing for submit-gap-responses (not draft saves)
-        if (stage === 'submit-gap-responses' && cleanedContext.reviewStartedAt && cleanedContext.reviewCompletedAt) {
-          const started = new Date(cleanedContext.reviewStartedAt);
-          const completed = new Date(cleanedContext.reviewCompletedAt);
-          updateOps.$push = {
-            humanReviewTimings: {
-              reviewType: 'gap-response',
-              reviewStartedAt: started,
-              reviewCompletedAt: completed,
-              durationMs: completed - started,
-              reviewedBy: cleanedContext.submittedBy || 'BT Team',
-              crId: null
-            }
-          };
-        }
-
         const result = await db.collection('projects').findOneAndUpdate(
           { _id: new ObjectId(projectId) },
-          updateOps,
+          { $set: updateData },
           { returnDocument: 'after' }
         );
 

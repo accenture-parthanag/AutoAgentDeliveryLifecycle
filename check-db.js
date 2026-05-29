@@ -5,7 +5,7 @@ const { MongoClient } = require('mongodb');
   try {
     const client = new MongoClient(process.env.MONGODB_URI);
     await client.connect();
-    const db = client.db(process.env.MONGODB_DB || 'aadlc');
+    const db = client.db(process.env.MONGODB_DB || 'agent_automation');
 
     const jobCount = await db.collection('jobs').countDocuments({});
     const projectCount = await db.collection('projects').countDocuments({});

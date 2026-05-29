@@ -6,7 +6,7 @@ async function connectDb() {
   if (cachedDb) return cachedDb;
 
   const mongoUri = process.env.MONGODB_URI;
-  const dbName = process.env.MONGODB_DB || 'aadlc';
+  const dbName = process.env.MONGODB_DB || 'agent_automation';
 
   if (!mongoUri) {
     throw new Error('MONGODB_URI not defined in .env');

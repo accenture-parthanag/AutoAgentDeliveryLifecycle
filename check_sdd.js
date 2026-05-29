@@ -4,7 +4,7 @@ const { MongoClient } = require('mongodb');
 const fs = require('fs');
 
 const MONGODB_URI = process.env.MONGODB_URI;
-const MONGODB_DB = process.env.MONGODB_DB || 'aadlc';
+const MONGODB_DB = process.env.MONGODB_DB || 'agent_automation';
 
 async function checkSdd() {
   const client = new MongoClient(MONGODB_URI);

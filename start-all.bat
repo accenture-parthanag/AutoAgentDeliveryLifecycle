@@ -1,12 +1,12 @@
 @echo off
-REM A-ADLC Platform - Multi-Process Launcher (Batch Wrapper)
+REM Agent Driven Automation - Multi-Process Launcher (Batch Wrapper)
 REM Cleans up existing processes and starts all services
 
 setlocal enabledelayedexpansion
 
 echo.
 echo ================================================================
-echo   A-ADLC Platform - Starting All Processes
+echo   Agent Driven Automation - Starting All Processes
 echo ================================================================
 echo.
 

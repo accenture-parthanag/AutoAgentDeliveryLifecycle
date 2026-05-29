@@ -1,14 +1,14 @@
 require('dotenv').config();
 
-const Anthropic = require('@anthropic-ai/sdk');
 const { MongoClient, ObjectId } = require('mongodb');
+const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const PDFParse = require('pdf-parse');
 const mammoth = require('mammoth');
 
 const MONGODB_URI = process.env.MONGODB_URI;
-const MONGODB_DB = process.env.MONGODB_DB || 'aadlc';
+const MONGODB_DB = process.env.MONGODB_DB || 'agent_automation';
 
 const PROMPT_PATH = path.join(__dirname, '..', '..', 'Prompts', 'architect-agent.md');
 let promptTemplate;
@@ -152,9 +152,7 @@ function formatImageManifest(manifest) {
     .join('\n');
 }
 
-async function generateSddWithClaude(project, pddPayload) {
-  const client = new Anthropic();
-
+function generateSddWithClaude(project, pddPayload) {
   const prompt = renderPrompt({
     projectName: project.name,
     description: project.description,
@@ -173,22 +171,28 @@ async function generateSddWithClaude(project, pddPayload) {
     console.log(prompt.substring(0, 300) + '...');
     console.log(`${'='.repeat(60)}`);
     console.log(`   Prompt size: ${(prompt.length / 1024 / 1024).toFixed(2)} MB`);
-    console.log(`\n🔄 Calling Claude API...`);
+    console.log(`\n🔄 Calling Claude CLI...`);
 
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 8096,
-      messages: [{ role: 'user', content: prompt }]
-    });
+    const command = `claude --output-format json`;
+    let output;
+    try {
+      output = execSync(command, {
+        input: prompt,
+        encoding: 'utf-8',
+        maxBuffer: 10 * 1024 * 1024,
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+    } catch (execErr) {
+      console.error(`Claude CLI exit code: ${execErr.status}`);
+      console.error(`Claude CLI stderr: ${execErr.stderr?.toString() || 'N/A'}`);
+      console.error(`Claude CLI stdout: ${execErr.stdout?.toString() || 'N/A'}`);
+      throw execErr;
+    }
+    console.log(`✓ Claude CLI returned response`);
 
-    const responseText = response.content[0]?.text || '';
-    console.log(`✓ Claude API returned response`);
+    const payload = JSON.parse(output);
+    const responseText = payload.result || payload.response || '';
 
-    const inputTokens = response.usage.input_tokens;
-    const outputTokens = response.usage.output_tokens;
-    const costUsd = (inputTokens * 0.80 / 1_000_000) + (outputTokens * 4.00 / 1_000_000);
-
-    console.log(`📊 Tokens used - Input: ${inputTokens}, Output: ${outputTokens}, Cost: $${costUsd.toFixed(6)}`);
     console.log(`📊 Response text (first 200 chars): ${responseText.substring(0, 200)}`);
 
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -199,17 +203,9 @@ async function generateSddWithClaude(project, pddPayload) {
 
     const sdd = JSON.parse(jsonMatch[0]);
     console.log(`✓ Successfully parsed SDD with ${sdd.components?.length || 0} components`);
-
-    return {
-      sdd,
-      tokenMetrics: {
-        inputTokens,
-        outputTokens,
-        costUsd
-      }
-    };
+    return sdd;
   } catch (err) {
-    console.error('❌ Error calling Claude API:', err.message);
+    console.error('❌ Error calling Claude CLI:', err.message);
     throw new Error('Failed to generate SDD with Claude: ' + err.message);
   }
 }
@@ -285,7 +281,7 @@ async function pollAndProcess() {
       console.error(`✓ STEP 2 DONE — text=${pddPayload.text.length} chars, images=${pddPayload.imageManifest.length}`);
 
       console.error(`STEP 3: Calling Claude to generate SDD...`);
-      const { sdd, tokenMetrics } = await generateSddWithClaude(project, pddPayload);
+      const sdd = generateSddWithClaude(project, pddPayload);
       console.error(`✓ STEP 3 DONE`);
 
       console.error(`STEP 4: Updating project with SDD...`);
@@ -309,15 +305,12 @@ async function pollAndProcess() {
       console.error(`✓ STEP 4 DONE: Project updated with SDD`);
 
       console.error(`STEP 5: Marking job as completed...`);
-      const durationMs = Date.now() - new Date(jobData.claimedAt).getTime();
       await jobsCollection.findOneAndUpdate(
         { _id: jobData._id },
         {
           $set: {
             status: 'completed',
             completedAt: new Date(),
-            durationMs,
-            tokenMetrics,
             result: {
               componentsDesigned: sdd.components?.length || 0,
               risksIdentified: sdd.risks?.length || 0
@@ -325,8 +318,7 @@ async function pollAndProcess() {
           }
         }
       );
-      console.error(`✓ STEP 5 DONE (duration: ${(durationMs / 1000).toFixed(1)}s)`);
-      console.error(`   Token metrics: Input=${tokenMetrics.inputTokens}, Output=${tokenMetrics.outputTokens}, Cost=$${tokenMetrics.costUsd.toFixed(6)}`);
+      console.error(`✓ STEP 5 DONE`);
 
       console.error(`\n🎉 SUCCESS! SDD generated for "${project.name}"`);
       console.error(`${'='.repeat(60)}`);
@@ -365,9 +357,7 @@ async function start() {
     console.log(`   Polling for sdd jobs every 3 seconds...`);
     console.log(`   Press Ctrl+C to stop\n`);
 
-    setInterval(async () => {
-      await pollAndProcess();
-    }, 3000);
+    setInterval(pollAndProcess, 3000);
   } catch (error) {
     console.error('Failed to start Architect Agent:', error);
     process.exit(1);

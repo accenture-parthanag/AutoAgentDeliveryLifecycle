@@ -1,12 +1,12 @@
 @echo off
-REM A-ADLC Platform - Process Terminator
+REM Agent Driven Automation - Process Terminator
 REM Stops all running node.js processes and closes service windows
 
 setlocal enabledelayedexpansion
 
 echo.
 echo ================================================================
-echo   A-ADLC Platform - Stopping All Processes
+echo   Agent Driven Automation - Stopping All Processes
 echo ================================================================
 echo.
 
